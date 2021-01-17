@@ -22,24 +22,24 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## Queues
+## 队列
 
-Displays general information about the queues like name, status, capacities and properties. 
-The queues' hierarchy is kept in the response json.  
+显示有关队列的常规信息，如名称、状态、容量和属性。
+队列的层次结构保存在响应json中。 
 
 **URL** : `/ws/v1/queues`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
-For the default queue hierarchy (only `root.default` leaf queue exists) a similar response to the following is sent back to the client:
+对于默认队列层次结构（仅限于`root.default`的叶队列存在），以下内容的类似响应将发送回客户端：
 
 ```json
 {
@@ -77,29 +77,31 @@ For the default queue hierarchy (only `root.default` leaf queue exists) a simila
 }
 ```
 
-## Applications
+## 应用
 
-Displays general information about the applications like used resources, queue name, submission time and allocations.
+显示有关应用程序的常规信息，如已用资源、队列名称、提交时间和分配等。
 
 **URL** : `/ws/v1/apps`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Query Params** : 
+**查询参数** : 
 
 1. queue=<fully qualified queue name\>
 
 The fully qualified queue name used to filter the applications that run within the given queue. For example, "/ws/v1/apps?queue=root.default" returns the applications running in "root.default" queue.
+用于筛选在给定队列中运行的应用程序的队列全称。例如，"/ws/v1/apps?queue=root.default" 返回在 "root.default" 排队中运行的应用程序。
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 In the example below there are three allocations belonging to two applications. 
+在下面的示例中，有3个allocation属于两个应用。
 
 ```json
 [
@@ -159,24 +161,24 @@ In the example below there are three allocations belonging to two applications.
 ]
 ```
 
-## Nodes
+## 节点
 
-Displays general information about the nodes managed by YuniKorn. 
-Node details include host and rack name, capacity, resources and allocations.
+显示有关YuniKorn所管理的节点的常规信息。
+包括主机和机架名称、容量、资源和分配等在内的节点详细信息。
 
 **URL** : `/ws/v1/nodes`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
-Here you can see an example response from a 2-node cluster having 3 allocations.
+这里您可以看到一个来自具有3个allocation的2节点集群的响应示例。
 
 ```json
 [
@@ -245,21 +247,21 @@ Here you can see an example response from a 2-node cluster having 3 allocations.
 ]
 ```
 
-## Goroutines info
+## Goroutines信息
 
-Dumps the stack traces of the currently running goroutines.
+转储当前运行的goroutine的堆栈跟踪。
 
 **URL** : `/ws/v1/stack`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```text
 goroutine 356 [running
@@ -322,22 +324,22 @@ created by os/signal.init.0
 ...
 ```
 
-## Metrics
+## 指标
 
-Endpoint to retrieve metrics from the Prometheus server. 
-The metrics are dumped with help messages and type information.
+从 Prometheus 服务器检索指标的接口。
+这些指标是用帮助消息和类型信息进行转储的。
 
 **URL** : `/ws/v1/metrics`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```text
 # HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
@@ -375,23 +377,24 @@ yunikorn_scheduler_vcore_nodes_usage{range="(90%,100%]"} 0
 yunikorn_scheduler_vcore_nodes_usage{range="[0,10%]"} 0
 ```
 
-## Configuration validation
+## 配置验证
 
 **URL** : `/ws/v1/validate-conf`
 
-**Method** : `POST`
+**方法** : `POST`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-Regardless whether the configuration is allowed or not if the server was able to process the request, it will yield a 200 HTTP status code.
+不管配置是否允许，如果服务器能够处理请求，它都将产生一个 200 HTTP 的状态码。
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-#### Allowed configuration
+#### 被允许的配置方法
 
-Sending the following simple configuration yields an accept
+发送以下简单的配置会产生一个返回
+
 
 ```yaml
 partitions:
@@ -402,7 +405,7 @@ partitions:
           - name: test
 ```
 
-Reponse
+返回
 
 ```json
 {
@@ -411,9 +414,9 @@ Reponse
 }
 ```
 
-#### Disallowed configuration
+#### 不被允许的配置方法
 
-The following configuration is not allowed due to the "wrong_text" field put into the yaml file.
+由于yaml文件中输入了 "wrong_text" 这个错误的字段，因此不允许进行以下配置。
 
 ```yaml
 partitions:
@@ -425,7 +428,7 @@ partitions:
   - wrong_text
 ```
 
-Reponse
+返回
 
 ```json
 {
@@ -434,21 +437,21 @@ Reponse
 }
 ```
 
-## Application history
+## 应用历史
 
-Endpoint to retrieve historical data about the number of total applications by timestamp.
+通过时间戳检索关于总应用程序的数量的历史数据的接口。
 
 **URL** : `/ws/v1/history/apps`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```json
 [
@@ -475,21 +478,22 @@ Endpoint to retrieve historical data about the number of total applications by t
 ]
 ```
 
-## Container history
+## 容器历史
 
 Endpoint to retrieve historical data about the number of total containers by timestamp.
+通过时间戳检索有关容器总数的历史数据的接口。
 
 **URL** : `/ws/v1/history/containers`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```json
 [

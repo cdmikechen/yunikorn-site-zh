@@ -22,19 +22,19 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-These endpoints are for the [pprof](https://github.com/google/pprof) profiling tool.
+这些接口主要用于 [pprof](https://github.com/google/pprof) 分析工具。
 
 ## pprof
 
 **URL** : `/debug/pprof/`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 是否需要认证
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```text
 /debug/pprof/
@@ -64,33 +64,33 @@ threadcreate: Stack traces that led to the creation of new OS threads
 trace: A trace of execution of the current program. You can specify the duration in the seconds GET parameter. After you get the trace file, use the go tool trace command to investigate the trace.
 ```
 
-## Heap
+## 堆信息
 
 **URL** : `/debug/pprof/heap`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
 ```
 
-## Thread create
+## 创建线程
 
 **URL** : `/debug/pprof/threadcreate`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -100,13 +100,13 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/goroutine`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -116,13 +116,13 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/allocs`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -132,13 +132,13 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/block`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -148,13 +148,13 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/mutex`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -164,29 +164,29 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/cmdline`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
 ```
 
-## Profile
+## 概况
 
 **URL** : `/debug/pprof/profile`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -196,13 +196,13 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/symbol`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto
@@ -212,13 +212,13 @@ trace: A trace of execution of the current program. You can specify the duration
 
 **URL** : `/debug/pprof/trace`
 
-**Method** : `GET`
+**方法** : `GET`
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
 ```proto
 // binary data from proto

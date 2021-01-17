@@ -22,23 +22,23 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## Clusters
+## 集群
 
-Returns general information about the clusters managed by the YuniKorn Scheduler. Information includes number of (total, failed, pending, running, completed) applications and containers.  
+返回由YuniKorn调度程序管理的群集常规信息，信息内容包括应用程序和容器的数量（包括总计、失败、挂起、正在运行和已完成的数量）。
 
 **URL** : `/ws/v1/clusters`
 
-**Method** : `GET`
+**方法** : `GET`
 
-**Auth required** : NO
+**是否需要认证** : NO
 
-### Success response
+### 成功返回
 
-**Code** : `200 OK`
+**返回代码** : `200 OK`
 
-**Content examples**
+**样例内容**
 
-As an example, here is a response from a 2-node cluster with 3 applications and 4 running containers.
+例如，下面是一个2节点集群的响应，其中包含3个应用程序和4个正在运行的容器。
 
 ```json
 [
