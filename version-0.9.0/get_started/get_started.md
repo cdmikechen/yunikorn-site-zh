@@ -63,7 +63,7 @@ kubectl port-forward svc/yunikorn-service 9080:9080 -n yunikorn
 ```
 
 `9889` 是 Web UI 的默认端口, `9080` 是调度器 Restful 服务的默认端口，web UI 会从中检索信息。
-完成此操作后，web UI将在以下地址可用：: http://localhost:9889.
+完成此操作后，web UI将在以下地址可用: http://localhost:9889.
 
 ![UI 截图](./../assets/yk-ui-screenshots.gif)
 
