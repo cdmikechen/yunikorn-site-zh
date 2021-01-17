@@ -89,7 +89,6 @@ under the License.
 
 1. queue=<fully qualified queue name\>
 
-The fully qualified queue name used to filter the applications that run within the given queue. For example, "/ws/v1/apps?queue=root.default" returns the applications running in "root.default" queue.
 用于筛选在给定队列中运行的应用程序的队列全称。例如，"/ws/v1/apps?queue=root.default" 返回在 "root.default" 排队中运行的应用程序。
 
 **是否需要认证** : NO
@@ -100,8 +99,7 @@ The fully qualified queue name used to filter the applications that run within t
 
 **样例内容**
 
-In the example below there are three allocations belonging to two applications. 
-在下面的示例中，有3个allocation属于两个应用。
+在下面的示例中，有3个资源分配属于两个应用。
 
 ```json
 [
@@ -178,7 +176,7 @@ In the example below there are three allocations belonging to two applications.
 
 **样例内容**
 
-这里您可以看到一个来自具有3个allocation的2节点集群的响应示例。
+这里您可以看到一个来自具有3个资源分配给2节点集群的响应示例。
 
 ```json
 [

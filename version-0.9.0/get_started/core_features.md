@@ -24,50 +24,49 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-The main features of YuniKorn include:
+YuniKorn的主要特点包括：
 
-## App-aware scheduling
-One of the key differences of YuniKorn is, it does app-aware scheduling. In default K8s scheduler, it simply schedules
-pod by pod, without any context about user, app, queue. However, YuniKorn recognizes users, apps, queues, and it considers
-a lot more factors, e.g resource, ordering etc, while making scheduling decisions. This gives us the possibility to do
-fine-grained controls on resource quotas, resource fairness and priorities, which are the most important requirements
-for a multi-tenancy computing system.
+## 应用感知调度
 
-## Hierarchy Resource Queues
+YuniKorn的关键区别之一就是它支持应用感知的调度。在默认的K8s调度程序中，它只能根据Pod进行调度，而不能基于用户、应用程序或者队列。
+然而，YuniKorn可以识别用户、应用程序或者队列，并在做出调度决策时，考虑更多的因素，如资源、排序等。
+这使我们能够对资源配额、资源公平性和优先级进行细粒度控制，这是多租户计算系统最重要的需求。
 
-Hierarchy queues provide an efficient mechanism to manage cluster resources. The hierarchy of the queues can logically
-map to the structure of an organization. This gives fine-grained control over resources for different tenants. The YuniKorn
-UI provides a centralised view to monitor the usage of resource queues, it helps you to get the insight how the resources are
-used across different tenants. What's more, By leveraging the min/max queue capacity, it can define how elastic it can be
-in terms of the resource consumption for each tenant.
+## 层次资源队列
 
-## Job Ordering and Queuing
-Applications can be properly queued in working-queues, the ordering policy determines which application can get resources first.
-The policy can be various, such as simple `FIFO`, `Fair`, `StateAware` or `Priority` based. Queues can maintain the order of applications,
-and based on different policies, the scheduler allocates resources to jobs accordingly. The behavior is much more predictable.
+层次队列提供了一种有效的机制来管理集群资源。
+队列的层次结构可以在逻辑上映射到组织结构。这为不同租户提供了对资源的细粒度控制。
+YuniKorn UI 提供了一个集中的视图来监视资源队列的使用情况，它可以帮助您了解不同租户是如何使用资源的。
+此外，通过利用最小/最大队列容量，它可以定义每个租户的弹性资源消耗。
 
-What's more, when the queue max-capacity is configured, jobs and tasks can be properly queued up in the resource queue.
-If the remaining capacity is not enough, they can be waiting in line until some resources are released. This simplifies
-the client side operation. Unlike the default scheduler, resources are capped by namespace resource quotas,
-and that is enforced by the quota-admission-controller, if the underneath namespace has no enough quota, pods cannot be
-created. Client side needs complex logic, e.g retry by condition, to handle such scenarios.
+## 作业排序和排队
 
-## Resource fairness
-In a multi-tenant environment, a lot of users are sharing cluster resources. To avoid tenants from competing resources
-and potential get starving. More fine-grained fairness needs to achieve fairness across users, as well as teams/organizations.
-With consideration of weights or priorities, some more important applications can get high demand resources that stand over its share.
-This is often associated with resource budget, a more fine-grained fairness mode can further improve the expense control.
+应用可以在工作队列中正确排队，排序策略决定哪个应用程序可以首先获得资源。
+这个策略可以是多种多样的，例如简单的 `FIFO`、`Fair`、`StateAware`或基于`Priority`的策略。
+队列可以维持应用的顺序，调度器根据不同的策略为作业分配相应的资源。这种行为更容易被理解和控制。
 
-## Resource Reservation
+此外，当配置队列最大容量时，作业和任务可以在资源队列中正确排队。
+如果剩余的容量不够，它们可以排队等待，直到释放一些资源。这简化了客户端操作。
+与默认调度程序不同，资源由命名空间资源配额限制，这是由配额许可控制器强制执行的。
+如果下面的命名空间没有足够的配额，Pod就不能被创建。
+客户端需要复杂的逻辑来处理此类场景，例如按条件重试。
 
-YuniKorn automatically does reservations for outstanding requests. If a pod could not be allocated, YuniKorn will try to
-reserve it on a qualified node and tentatively allocate the pod on this reserved node (before trying rest of nodes).
-This mechanism can avoid this pod gets starved by later submitted smaller, less-picky pods.
-This feature is important in the batch workloads scenario because when a large amount of heterogeneous pods is submitted
-to the cluster, it's very likely some pods can be starved even they are submitted much earlier. 
+## 资源公平性
 
-## Throughput
-Throughput is a key criterion to measure scheduler performance. It is critical for a large scale distributed system.
-If throughput is bad, applications may waste time on waiting for scheduling, and further impact service SLAs.
-When the cluster gets bigger, it also means the requirement of higher throughput. The [performance evaluation based on Kube-mark](performance/evaluate_perf_function_with_kubemark.md)
-reveals some perf numbers.
+在多租户环境中，许多用户共享集群资源。
+为了避免租户争夺资源或者可能的资源不足，需要做到更细粒度的公平性需求，以此来实现跨用户以及跨团队/组织的公平性。
+考虑到权重或优先级，一些更重要的应用可以获得超过其配额的更多的需求资源。
+这往往与资源预算有关，更细粒度的公平模式可以进一步提高资源控制。
+
+## 资源预留
+
+YuniKorn会自动为未完成的请求进行资源预订。
+如果Pod无法分配，YuniKorn将尝试在一个满足条件的节点上保留它，并在这个保留节点上暂时分配pod（在尝试其他节点之前）。
+这种机制可以避免这个Pod被后来提交的更小、更不挑剔的豆荚所挤占。
+此功能在批处理工作负载场景中非常重要，因为当对集群提交大量异构Pod时，很有可能一些Pod会被抛弃，即使它们提交得更早。
+
+## 吞吐量
+
+吞吐量是衡量调度器性能的关键标准。这对于一个大规模的分布式系统来说是至关重要的。
+如果吞吐量不好，应用程序可能会浪费时间等待调度，并进一步影响服务的SLA（服务级别协议）。
+集群越大，对吞吐量的要求也越高。[基于Kube标记的运行评估](performance/evaluate_perf_function_with_kubemark.md) 章节显示了一些性能数据。
