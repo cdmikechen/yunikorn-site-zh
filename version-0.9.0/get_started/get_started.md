@@ -48,6 +48,7 @@ helm install yunikorn yunikorn/yunikorn --namespace yunikorn
 ## 卸载
 
 运行如下的命令卸载YuniKorn:
+
 ```shell script
 helm uninstall yunikorn --namespace yunikorn
 ```
@@ -57,15 +58,14 @@ helm uninstall yunikorn --namespace yunikorn
 部署调度器时，web UI也部署在容器中。
 标准端口上web界面的端口转发可以通过以下方式打开：
 
-```
+```shell script
 kubectl port-forward svc/yunikorn-service 9889:9889 -n yunikorn
 kubectl port-forward svc/yunikorn-service 9080:9080 -n yunikorn
 ```
 
 `9889` 是 Web UI 的默认端口, `9080` 是调度器 Restful 服务的默认端口，web UI 会从中检索信息。
-完成此操作后，web UI将在以下地址可用: http://localhost:9889.
+完成此操作后，web UI将在以下地址可用: http://localhost:9889 。
 
 ![UI 截图](./../assets/yk-ui-screenshots.gif)
 
 YuniKorn UI提供了集群资源容量、利用率和所有应用信息的集中视图。
-

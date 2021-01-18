@@ -22,41 +22,36 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Apache YuniKorn (Incubating) is a light-weight, universal resource scheduler for container orchestrator systems.
-It is created to achieve fine-grained resource sharing for various workloads efficiently on a large scale, multi-tenant,
-and cloud-native environment. YuniKorn brings a unified, cross-platform, scheduling experience for mixed workloads that
-consist of stateless batch workloads and stateful services.
+Apache YuniKorn (Incubating) 是一个用于容器编排器系统的轻量级通用资源调度器。
+它的创建是为了在大规模、多租户和云本地环境中高效地实现各种工作负载的细粒度资源共享。
+YuniKorn为无状态批处理和有状态服务组成的混合工作负载带来了统一的、跨平台的调度体验。
 
-YuniKorn now supports K8s and can be deployed as a custom K8s scheduler. YuniKorn's architecture design also allows
-adding different shim layer and adopt to different ResourceManager implementation including Apache Hadoop YARN,
-or any other systems.
+YuniKorn现在支持K8s并可以作为自定义K8s调度程序部署。
+YuniKorn的架构设计还允许添加不同的 shim（中介）层，并采用不同的ResourceManager实现，包括 Apache Hadoop YARN 或任何的其他系统。
 
-## Architecture
+## 架构
 
-Following chart illustrates the high-level architecture of YuniKorn.
+下图说明了YuniKorn的高级体系结构。
 
 <img src={require('./../assets/architecture.png').default} />
 ![](./../assets/architecture.png)
-## Components
 
-### Scheduler interface
+## 组件
 
-[Scheduler interface](https://github.com/apache/incubator-yunikorn-scheduler-interface) is an abstract layer
-which resource management platform (like YARN/K8s) will speak with, via API like GRPC/programing language bindings.
+### 调度器接口
 
-### Scheduler core
+[调度器接口](https://github.com/apache/incubator-yunikorn-scheduler-interface) 是一个抽象层。资源管理平台（如YARN/K8s）将通过GRPC/编程语言绑定等API与之对话。
 
-Scheduler core encapsulates all scheduling algorithms, it collects resources from underneath resource management
-platforms (like YARN/K8s), and is responsible for container allocation requests. It makes the decision where is the
-best spot for each request and then sends response allocations to the resource management platform.
-Scheduler core is agnostic about underneath platforms, all the communications are through the [scheduler interface](https://github.com/apache/incubator-yunikorn-scheduler-interface).
-Please read more about the design of schedule core [here](scheduler_core_design.md).
+### 调度器核心
+
+调度器核心封装了所有的调度算法，它从底层的资源管理平台（如YARN/K8s）收集资源，并负责容器分配请求。
+它决定每个请求的最佳位置，然后将响应分配发送到资源管理平台。
+调度器核心对底层平台是不可知的，所有的通信都是通过 [调度器接口](https://github.com/apache/incubator-yunikorn-scheduler-interface)。
+请阅读更多有关调度器核心的设计内容 [链接](scheduler_core_design.md)。
 
 ### Kubernetes shim
 
-The YuniKorn Kubernetes shim is responsible for talking to Kubernetes, it is responsible for translating the Kubernetes
-cluster resources, and resource requests via scheduler interface and send them to the scheduler core.
-And when a scheduler decision is made, it is responsible for binding the pod to the specific node. All the communication
-between the shim and the scheduler core is through the [scheduler interface](https://github.com/apache/incubator-yunikorn-scheduler-interface).
-Please read more about the design of the Kubernetes shim [here](k8shim.md)
-
+YuniKorn Kubernetes shim负责与Kubernetes交互，它负责转换Kubernetes集群资源，并通过调度器接口将资源请求发送到调度器核心。
+当调度器做出决策时，它负责将pod绑定到特定节点。
+shim和调度器核心之间的所有通信都是通过 [调度器接口](https://github.com/apache/incubator-yunikorn-scheduler-interface) 进行的。
+请阅读更多关于Kubernetes shim的设计内容 [链接](k8shim.md)。
