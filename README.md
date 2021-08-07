@@ -4,4 +4,4 @@
 
 文档原文地址：https://github.com/apache/incubator-yunikorn-site
 
-当前基于0.9.0版本进行汉化。
+当前基于0.11.0版本进行汉化。

@@ -22,26 +22,25 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## Problems:
+## 问题:
 
-According to lessons we learned from YARN Scheduler preemption. 
+根据我们从 YARN Scheduler 抢占中吸取的教训。
 
-**Here're top bad things:** 
+**以下是最糟糕的事情:** 
 
-- Preemption is a shotgun instead of a sniper, when a preemption decision is made, nobody knows if preempted resources will go to demanding queue/app/user or not.
-- Preemption logic and allocation is different, we have to implement (and mimic) what we have done in scheduler allocation logic. 
+- 抢占是一把猎枪，而不是狙击手，当抢占决定作出时，没有人知道抢占的资源是否会进入请求队列/应用程序/用户。
+- 抢占逻辑和分配是不同的，我们必须实现（并模仿）我们在调度器分配逻辑中所做的事情。
 
-**Here're top good things:**
+**以下是最好的事情:**
 
-- Preemption is fast (thanks to the shotgun), reclaiming thousands of containers only takes ~ 1 sec. 
-- We have understand how painful it is to handle DRF, multiple preemption policies (inter/intra-queue, shotgun/surgical preemption, etc.) And we have developed some good logic 
-to make sure better modularization and plug-ability  
+- 抢占很快（多亏了猎枪），回收数千个 contaier 并只需要1秒。
+- 我们已经了解处理DRF、多个抢占策略（队列间/队列内、散弹枪/外科抢占等）是多么痛苦，并且我们已经开发了一些不错的逻辑来确保更好的模块化和插件能力。
 
-## Answer some questions for design/implementation choices
+## 回答一些有关设计/实现选择的问题
 
-**1\. Do we really want preemption-delay? (Or we just want to control pace)**
+**1\. 我们真的想要抢占延迟吗？（或者我们只是想控制节奏）**
 
-In CS, we have preemption-delay, which select victims in preemption candidates, wait for a certain time before killing it. 
+在CS架构中，我们有抢占延迟，即在抢占候选中选择需要杀死的进程，等待一定时间后再杀死它。
 
 The purposes of preemption delay are: a. give heads-up time to apps so 
 they can prepare bad things happen (unfortunately no app do anything for these heads up, at least from what I knew). b. control preemption pace.   
