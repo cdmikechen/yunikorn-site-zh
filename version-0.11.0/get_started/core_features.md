@@ -1,8 +1,8 @@
 ---
 id: core_features
-title: Features
+title: 特征
 keywords:
- - feature
+ - 特征
 ---
 
 <!--

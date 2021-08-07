@@ -1,6 +1,6 @@
 ---
 id: cluster
-title: Cluster
+title: 集群
 ---
 
 <!--

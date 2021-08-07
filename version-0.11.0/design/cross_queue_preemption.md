@@ -1,6 +1,6 @@
 ---
 id: cross_queue_preemption
-title: Cross Queue Preemption
+title: 跨队列抢占
 ---
 
 <!--
@@ -42,35 +42,39 @@ under the License.
 
 在CS架构中，我们有抢占延迟，即在抢占候选中选择需要杀死的进程，等待一定时间后再杀死它。
 
-The purposes of preemption delay are: a. give heads-up time to apps so 
-they can prepare bad things happen (unfortunately no app do anything for these heads up, at least from what I knew). b. control preemption pace.   
+抢占延迟的目的是：
+a. 为应用程序留出时间，以便他们可以为坏事情的发生做好准备（不幸的是，至少从我们所知道的情况来看，没有一款应用程序能为这些问题做任何事情）。
+b. 控制抢占速度。
 
-And in practice, I found it causes a lot of issues, for example when a 
-cluster state keep changing, it is very hard to ensure accurate preemption. 
+在实践中，我们发现例如集群状态不断变化等情况会引起很多问题，很难保证准确的抢占。
 
-**Proposal:**
+**建议:**
 
-Remove the preemption-delay, keep the logics of controlling preemption pace. (such as ```yarn.resourcemanager.monitor.capacity.preemption
-.total_preemption_per_round```). And we can do allocation together with preemption.
-This don't mean containers will be stopped immediately after preemption issued. Instead, RM can control delays between signal a container and kill a container. Such as grace 
-termination of POD in K8s: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods   
+消除抢占延迟，保持控制抢占速度的逻辑（例如 ```yarn.resourcemanager.monitor.capacity.preemption
+.total_preemption_per_round```）。
+我们可以通过抢占来进行资源的分配。
+这并不意味着容器将在发出抢占权后立即停止。
+相反，RM可以控制向容器发送信号和终止容器之间的延迟。
+比如在K8s中终止POD：https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
 
-**2\. Do we want to do preemption for every scheduling logic, or we can do periodically?**
+**2\. 我们是想对每个调度逻辑进行抢占，还是可以周期性地进行抢占？**
 
-In CS, we have preemption logic runs periodically, like every 1 sec or 3 sec. 
+在CS架构中，我们定期运行抢占逻辑，比如每1秒或3秒。
 
-Since preemption logic involves some heavy logics, like calculating shares of queues/apps. And when doing accurate preemption, we may need to scan nodes for preemption candidate. 
-Considering this, I propose to have preemption runs periodically. But it is important to note that, we need to try to use as much code as possible for 
-allocation-inside-preemption, otherwise there will be too much duplicated logic and very hard to be maintained in the future.
+因为抢占逻辑涉及一些复杂的逻辑，比如计算队列/应用程序的共享。
+在进行精确抢占时，我们可能需要扫描节点以寻找抢占的候选节点。
+考虑到这一点，我们建议定期进行抢占操作。
+但需要注意的是，我们需要尽可能多地使用代码来抢占内部分配，否则会有太多的复杂逻辑，未来将来很难维护。
 
-**3\. Preemption cost and function**
 
-We found it is helpful to add cost for preemption, such as container live time, priority, type of container. It could be a cost function (Which returns a numeric value) or it 
-could be a comparator (which compare two allocations for preemption ask).
+**3\. 抢占成本与功能**
 
-## Pseudo code
+我们发现增加抢占成本是有帮助的，例如容器生存时间、优先级、容器类型。
+它可以是一个成本函数（返回一个数值），也可以是一个比较器（用于比较抢占请求的两个分配情况）。
 
-Logic of allocation (invoked every allocation cycle)
+## 伪代码
+
+分配逻辑（每个分配周期调用）
 
 ```
 input:
@@ -88,7 +92,7 @@ for partition:
   nAlloc -= len(allocated)   
 ```
 
-Logic of preemption (invoked every preemption cycle)
+抢占逻辑（每个抢占周期调用）
 
 ```
 // It has to be done for every preemption-policy because calculation is different.
@@ -99,7 +103,7 @@ for preemption-policy:
      updated-missed-opportunity (allocated)
 ```
 
-Inside preemption policy
+抢占策略内部
 
 ```
 inter-queue-preempt-policy:

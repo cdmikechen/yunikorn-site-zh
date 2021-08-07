@@ -1,6 +1,6 @@
 ---
 id: user_guide
-title: Get Started
+title: 开始
 slug: /
 ---
 

@@ -1,6 +1,6 @@
 ---
 id: system
-title: System
+title: 系统
 ---
 
 <!--
