@@ -59,4 +59,69 @@ under the License.
     }
 ]
 ```
-		
+
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
+## 集群利用率
+
+返回与群集资源利用率相关的统计数据
+
+**URL** : `/ws/v1/clusters/utilization`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+```json
+[
+    {
+        "partition": "[mycluster]default",
+        "utilization": [
+            {
+                "type": "memory",
+                "total": 5076,
+                "used": 1500,
+                "usage": "29%"
+            },
+            {
+                "type": "vcore",
+                "total": 4000,
+                "used": 300,
+                "usage": "7%"
+            }
+        ]
+    }
+]
+```
+
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```

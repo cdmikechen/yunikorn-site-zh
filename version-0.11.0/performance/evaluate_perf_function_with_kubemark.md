@@ -52,7 +52,7 @@ Each of YuniKorn queues has its guaranteed and maximum capacity. When we have lo
 YuniKorn ensures each of them gets its fair share. When we monitor the resource usage of these queues, we can clearly
 see how fairness was enforced:
 
-![Scheduler Throughput](./../assets/queue-fairness.png)
+![Queue Fairness](./../assets/queue-fairness.png)
 
 We set up 4 heterogeneous queues on this cluster, and submit different workloads against these queues.
 From the chart, we can see the queue resources are increasing nearly in the same trend, which means the resource

@@ -22,10 +22,153 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+## 分区
+
+显示有关分区的常规信息，如名称、状态、容量、已用容量和节点排序策略。
+
+**URL** : `/ws/v1/partitions`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+```json
+[
+    {
+        "name": "[mycluster]default",
+        "state": "Active",
+        "lastStateTransitionTime": "2021-05-20 12:25:49.018953 +0530 IST m=+0.005949717",
+        "capacity": {
+            "capacity": "[memory:1000 vcore:1000]",
+            "usedcapacity": "[memory:800 vcore:500]"
+        },
+        "nodeSortingPolicy": "fair",
+        "applications": {
+            "New": 5,
+            "Pending": 5,
+            "total": 10
+        }
+    },
+    {
+        "name": "[mycluster]gpu",
+        "state": "Active",
+        "lastStateTransitionTime": "2021-05-19 12:25:49.018953 +0530 IST m=+0.005949717",
+        "capacity": {
+            "capacity": "[memory:2000 vcore:2000]",
+            "usedcapacity": "[memory:500 vcore:300]"
+        },
+        "nodeSortingPolicy": "fair",
+        "applications": {
+            "New": 5,
+            "Running": 10,
+            "Pending": 5,
+            "total": 20
+        }
+    }
+]
+```
+
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
 ## 队列
 
-显示有关队列的常规信息，如名称、状态、容量和属性。
-队列的层次结构保存在响应json中。 
+### 分区队列
+
+获取与给定分区关联的所有队列，并显示有关队列的一般信息，如名称、状态、容量和属性。
+队列的层次结构保存在响应json中。
+
+**URL** : `/ws/v1/partition/{partitionName}/queues`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+For the default queue hierarchy (only `root.default` leaf queue exists) a similar response to the following is sent back to the client:
+对于默认队列层次结构（只有在 `root.default` leaf队列存在的时候），对以下内容的类似响应将发送回客户端：
+
+```json
+[
+   {
+
+       "queuename": "root",
+       "status": "Active",
+       "maxResource": "[memory:8000 vcore:8000]",
+       "guaranteedResource": "[memory:54 vcore:80]",
+       "allocatedResource": "[memory:54 vcore:80]",
+       "isLeaf": "false",
+       "isManaged": "false",
+       "parent": "",
+       "partition": "[mycluster]default",
+       "children": [
+           {
+               "queuename": "root.default",
+               "status": "Active",
+               "maxResource": "[memory:8000 vcore:8000]",
+               "guaranteedResource": "[memory:54 vcore:80]",
+               "allocatedResource": "[memory:54 vcore:80]",
+               "isLeaf": "true",
+               "isManaged": "false",
+               "parent": "root"
+            }
+        ]
+    } 
+]
+```
+
+### 错误返回
+
+**返回代码** : `400 Bad Request`
+
+**样例内容**
+
+```json
+{
+    "status_code": 400,
+    "message": "Partition is missing in URL path. Please check the usage documentation",
+    "description": "Partition is missing in URL path. Please check the usage documentation"
+}
+```
+
+**Code** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
+### 所有队列
+
+获取不同分区中的所有队列，并显示有关队列的一般信息，如名称、状态、容量和属性。
+队列的层次结构保存在响应json中。
 
 **URL** : `/ws/v1/queues`
 
@@ -79,7 +222,111 @@ under the License.
 
 ## 应用
 
-显示有关应用程序的常规信息，如已用资源、队列名称、提交时间和分配等。
+### 队列应用
+
+获取给定分区队列组合的所有应用程序，并显示有关应用程序的常规信息，如已用资源、队列名称、提交时间和分配。
+
+**URL** : `/ws/v1/partition/{partitioName}/queue/{queueName}/applications`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+在下面的示例中，有3个资源分配属于两个应用。
+
+```json
+[
+    {
+        "applicationID": "application-0001",
+        "usedResource": "[memory:4000 vcore:4000]",
+        "partition": "[mycluster]default",
+        "queueName": "root.default",
+        "submissionTime": 1595939756253216000,
+        "allocations": [
+            {
+                "allocationKey": "deb12221-6b56-4fe9-87db-ebfadce9aa20",
+                "allocationTags": null,
+                "uuid": "9af35d44-2d6f-40d1-b51d-758859e6b8a8",
+                "resource": "[memory:4000 vcore:4000]",
+                "priority": "<nil>",
+                "queueName": "root.default",
+                "nodeId": "node-0001",
+                "applicationId": "application-0002",
+                "partition": "default"
+            }
+        ],
+        "applicationState": "Running"
+    },
+    {
+        "applicationID": "application-0002",
+        "usedResource": "[memory:4000 vcore:4000]",
+        "partition": "[mycluster]default",
+        "queueName": "root.default",
+        "submissionTime": 1595939756253460000,
+        "allocations": [
+            {
+                "allocationKey": "54e5d77b-f4c3-4607-8038-03c9499dd99d",
+                "allocationTags": null,
+                "uuid": "08033f9a-4699-403c-9204-6333856b41bd",
+                "resource": "[memory:2000 vcore:2000]",
+                "priority": "<nil>",
+                "queueName": "root.default",
+                "nodeId": "node-0001",
+                "applicationId": "application-0002",
+                "partition": "default"
+            },
+            {
+                "allocationKey": "af3bd2f3-31c5-42dd-8f3f-c2298ebdec81",
+                "allocationTags": null,
+                "uuid": "96beeb45-5ed2-4c19-9a83-2ac807637b3b",
+                "resource": "[memory:2000 vcore:2000]",
+                "priority": "<nil>",
+                "queueName": "root.default",
+                "nodeId": "node-0002",
+                "applicationId": "application-0002",
+                "partition": "default"
+            }
+        ],
+        "applicationState": "Running"
+    }
+]
+```
+
+### 错误返回
+
+**返回代码** : `400 Bad Request`
+
+**样例内容**
+
+```json
+{
+    "status_code": 400,
+    "message": "Partition is missing in URL path. Please check the usage documentation",
+    "description": "Partition is missing in URL path. Please check the usage documentation"
+}
+```
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
+### 所有应用
+
+跨不同分区获取所有应用程序，并显示有关应用程序的常规信息，如已用资源、队列名称、提交时间和分配。
 
 **URL** : `/ws/v1/apps`
 
@@ -161,8 +408,117 @@ under the License.
 
 ## 节点
 
-显示有关YuniKorn所管理的节点的常规信息。
-包括主机和机架名称、容量、资源和分配等在内的节点详细信息。
+### 分区节点
+
+获取与给定分区关联的所有节点，并显示有关由YuniKorn管理的节点的常规信息。
+节点详细信息包括主机和机架名称、容量、资源和分配。
+
+**URL** : `/ws/v1/partition/{partitionName}/nodes`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+在下面的示例中，有3个资源分配属于两个应用。
+
+```json
+[
+    {
+        "nodeID": "node-0001",
+        "hostName": "",
+        "rackName": "",
+        "capacity": "[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:14577 pods:110 vcore:10000]",
+        "allocated": "[memory:6000 vcore:6000]",
+        "occupied": "[memory:154 vcore:750]",
+        "available": "[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:6423 pods:110 vcore:1250]",
+        "allocations": [
+            {
+                "allocationKey": "54e5d77b-f4c3-4607-8038-03c9499dd99d",
+                "allocationTags": null,
+                "uuid": "08033f9a-4699-403c-9204-6333856b41bd",
+                "resource": "[memory:2000 vcore:2000]",
+                "priority": "<nil>",
+                "queueName": "root.default",
+                "nodeId": "node-0001",
+                "applicationId": "application-0001",
+                "partition": "default"
+            },
+            {
+                "allocationKey": "deb12221-6b56-4fe9-87db-ebfadce9aa20",
+                "allocationTags": null,
+                "uuid": "9af35d44-2d6f-40d1-b51d-758859e6b8a8",
+                "resource": "[memory:4000 vcore:4000]",
+                "priority": "<nil>",
+                "queueName": "root.default",
+                "nodeId": "node-0001",
+                "applicationId": "application-0002",
+                "partition": "default"
+            }
+        ],
+        "schedulable": true
+    },
+    {
+        "nodeID": "node-0002",
+        "hostName": "",
+        "rackName": "",
+        "capacity": "[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:14577 pods:110 vcore:10000]",
+        "allocated": "[memory:2000 vcore:2000]",
+        "occupied": "[memory:154 vcore:750]",
+        "available": "[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:6423 pods:110 vcore:1250]",
+        "allocations": [
+            {
+                "allocationKey": "af3bd2f3-31c5-42dd-8f3f-c2298ebdec81",
+                "allocationTags": null,
+                "uuid": "96beeb45-5ed2-4c19-9a83-2ac807637b3b",
+                "resource": "[memory:2000 vcore:2000]",
+                "priority": "<nil>",
+                "queueName": "root.default",
+                "nodeId": "node-0002",
+                "applicationId": "application-0001",
+                "partition": "default"
+            }
+        ],
+        "schedulable": true
+    }
+]
+```
+
+### 错误返回
+
+**返回代码** : `400 Bad Request`
+
+**样例内容**
+
+```json
+{
+    "status_code": 400,
+    "message": "Partition is missing in URL path. Please check the usage documentation",
+    "description": "Partition is missing in URL path. Please check the usage documentation"
+}
+```
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
+### All nodes
+
+获取跨越不同分区的所有节点，并显示有关由YuniKorn管理的节点的常规信息。
+节点详细信息包括主机和机架名称、容量、资源和分配。
 
 **URL** : `/ws/v1/nodes`
 
@@ -245,6 +601,42 @@ under the License.
 ]
 ```
 
+## 节点利用率
+
+显示了节点分布式部署的资源利用率情况
+
+**URL** : `/ws/v1/nodes/utilization`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+```text
+[
+    {
+     partition: default,
+     utilization: [ {
+        type: "cpu",
+        total: 100,
+        used: 50,
+        usage: 50%
+      },
+      {
+         type: "memory",
+         total: 1000,
+         used: 500,
+         usage: 50%
+      }
+     ]
+    }, 
+    ...
+]
+```
+
 ## Goroutines信息
 
 转储当前运行的goroutine的堆栈跟踪。
@@ -320,6 +712,20 @@ created by os/signal.init.0
 	/usr/local/go/src/os/signal/signal_unix.go: 29 +0x4f
 
 ...
+```
+
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
 ```
 
 ## 指标
@@ -435,6 +841,213 @@ partitions:
 }
 ```
 
+## 配置创建
+
+创建调度程序配置的请求，但当前仅限于配置验证目的
+
+**URL** : `/ws/v1/config`
+
+**方法** : `POST`
+
+**查询变量** : 
+
+1. dry_run
+
+强制参数。仅允许 dry_run=1，并且只能用于配置验证，不能用于实际的配置创建。
+
+**是否需要认证** : NO
+
+### 成功返回
+
+Regardless whether the configuration is allowed or not if the server was able to process the request, it will yield a 200 HTTP status code.
+
+**返回代码** : `200 OK`
+
+#### 允许的配置
+
+发送以下简单配置会产生一个返回信息
+
+```yaml
+partitions:
+  - name: default
+    queues:
+      - name: root
+        queues:
+          - name: test
+```
+
+返回
+
+```json
+{
+    "allowed": true,
+    "reason": ""
+}
+```
+
+#### 禁用的配置
+
+由于yaml文件中存在 "wrong_text" 字段，因此不允许进行以下配置。
+
+```yaml
+partitions:
+  - name: default
+    queues:
+      - name: root
+        queues:
+          - name: test
+  - wrong_text
+```
+
+返回
+
+```json
+{
+    "allowed": false,
+    "reason": "yaml: unmarshal errors:\n  line 7: cannot unmarshal !!str `wrong_text` into configs.PartitionConfig"
+}
+```
+
+### 错误返回
+
+**返回代码** : `400 Bad Request`
+
+**样例内容**
+
+```json
+{
+    "status_code": 400,
+    "message": "Dry run param is missing. Please check the usage documentation",
+    "description": "Dry run param is missing. Please check the usage documentation"
+}
+```
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
+## 配置
+
+用于检索当前调度配置的请求
+
+**URL** : `/ws/v1/config`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+```yaml
+partitions:
+- name: default
+  queues:
+  - name: root
+    parent: true
+    submitacl: '*'
+  placementrules:
+  - name: tag
+    create: true
+    value: namespace
+checksum: D75996C07D5167F41B33E27CCFAEF1D5C55BE3C00EE6526A7ABDF8435DB4078E
+```
+
+## 配置更新
+
+覆盖调度配置的请求。
+
+**URL** : `/ws/v1/config`
+
+**方法** : `PUT`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+```yaml
+partitions:
+  -
+    name: default
+    placementrules:
+      - name: tag
+        value: namespace
+        create: true
+    queues:
+      - name: root
+        submitacl: '*'
+        properties:
+          application.sort.policy: stateaware
+checksum: BAB3D76402827EABE62FA7E4C6BCF4D8DD9552834561B6B660EF37FED9299791
+```
+**注意:** 更新必须使用当前正在运行的配置作为基础。
+基础配置是先前通过GET请求检索配置版本并由用户更新。
+更新请求必须包含 _基础_ 配置的 checksum。
+如果更新请求中提供的 checksum 与当前运行的配置 checksum 不同，则将拒绝更新。
+
+### 失败返回
+
+由于以下不同原因，配置更新可能会失败：
+- 配置无效，
+- 错误的基础配置 checksum.
+
+在每种情况下，交易都将被拒绝，并且准确的错误消息将作为响应返回。
+
+**返回代码** : `409 Conflict`
+
+**样例消息** :  root queue must not have resource limits set
+
+**样例内容**
+
+```yaml
+partitions:
+  -
+    name: default
+    placementrules:
+      - name: tag
+        value: namespace
+        create: true
+    queues:
+      - name: root
+        submitacl: '*'
+        resources:
+          guaranteed:
+            memory: "512"
+            vcore: "1"
+        properties:
+          application.sort.policy: stateaware
+checksum: BAB3D76402827EABE62FA7E4C6BCF4D8DD9552834561B6B660EF37FED9299791
+```
+
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
 ## 应用历史
 
 通过时间戳检索关于总应用程序的数量的历史数据的接口。
@@ -476,10 +1089,23 @@ partitions:
 ]
 ```
 
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
 ## 容器历史
 
-Endpoint to retrieve historical data about the number of total containers by timestamp.
-通过时间戳检索有关容器总数的历史数据的接口。
+通过时间戳检索有关容器总数的历史数据的请求。
 
 **URL** : `/ws/v1/history/containers`
 
@@ -516,4 +1142,97 @@ Endpoint to retrieve historical data about the number of total containers by tim
         "totalContainers": "3"
     }
 ]
+```
+
+### 错误返回
+
+**返回代码** : `500 Internal Server Error`
+
+**样例内容**
+
+```json
+{
+    "status_code": 500,
+    "message": "system error message. for example, json: invalid UTF-8 in string: ..",
+    "description": "system error message. for example, json: invalid UTF-8 in string: .."
+}
+```
+
+
+## 健康检查请求
+
+用于检索有关关键日志、节点/群集/应用程序上的负资源的历史数据的请求...
+
+**URL** : `/ws/v1/scheduler/healthcheck`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+```json
+{
+    "Healthy": true,
+    "HealthChecks": [
+        {
+            "Name": "Scheduling errors",
+            "Succeeded": true,
+            "Description": "Check for scheduling error entries in metrics",
+            "DiagnosisMessage": "There were 0 scheduling errors logged in the metrics"
+        },
+        {
+            "Name": "Failed nodes",
+            "Succeeded": true,
+            "Description": "Check for failed nodes entries in metrics",
+            "DiagnosisMessage": "There were 0 failed nodes logged in the metrics"
+        },
+        {
+            "Name": "Negative resources",
+            "Succeeded": true,
+            "Description": "Check for negative resources in the partitions",
+            "DiagnosisMessage": "Partitions with negative resources: []"
+        },
+        {
+            "Name": "Negative resources",
+            "Succeeded": true,
+            "Description": "Check for negative resources in the nodes",
+            "DiagnosisMessage": "Nodes with negative resources: []"
+        },
+        {
+            "Name": "Consistency of data",
+            "Succeeded": true,
+            "Description": "Check if a node's allocated resource <= total resource of the node",
+            "DiagnosisMessage": "Nodes with inconsistent data: []"
+        },
+        {
+            "Name": "Consistency of data",
+            "Succeeded": true,
+            "Description": "Check if total partition resource == sum of the node resources from the partition",
+            "DiagnosisMessage": "Partitions with inconsistent data: []"
+        },
+        {
+            "Name": "Consistency of data",
+            "Succeeded": true,
+            "Description": "Check if node total resource = allocated resource + occupied resource + available resource",
+            "DiagnosisMessage": "Nodes with inconsistent data: []"
+        },
+        {
+            "Name": "Consistency of data",
+            "Succeeded": true,
+            "Description": "Check if node capacity >= allocated resources on the node",
+            "DiagnosisMessage": "Nodes with inconsistent data: []"
+        },
+        {
+            "Name": "Reservation check",
+            "Succeeded": true,
+            "Description": "Check the reservation nr compared to the number of nodes",
+            "DiagnosisMessage": "Reservation/node nr ratio: [0.000000]"
+        }
+    ]
+}
 ```

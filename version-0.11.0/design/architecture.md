@@ -34,7 +34,6 @@ YuniKorn的架构设计还允许添加不同的 shim（中介）层，并采用�
 下图说明了YuniKorn的高级体系结构。
 
 <img src={require('./../assets/architecture.png').default} />
-![](./../assets/architecture.png)
 
 ## 组件
 
