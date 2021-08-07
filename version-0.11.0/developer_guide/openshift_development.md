@@ -1,6 +1,6 @@
 ---
 id: openshift_development
-title: Development in CodeReady Containers
+title: 在 CodeReady 容器中开发
 ---
 
 <!--
@@ -22,63 +22,64 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-YuniKorn is tested against OpenShift and developers can set up their local environment to test patches against OpenShift.
-Our recommended local environment uses CodeReady containers.
+YuniKorn经过了OpenShift的测试，开发人员可以设置他们的本地环境来测试OpenShift的补丁。
+我们推荐本地环境使用CodeReady容器。
 
-## Set up a running CRC cluster
+## 设置一个运行的CRC集群
 
-1. Download CodeReady Container binaries
+1. 下载 CodeReady 容器二进制文件
 
-   Select your OS from the dropdown list then click on "Download" (On a Mac, you'll download crc-macos-amd64.tar.xz; on Linux, crc-linux-amd64.tar.xz).
-   You'll be asked to connect using your Red Hat login. If you don't have one, just click on "Create one now". You do *not* need a Red Hat subscription for this.
+   从列表中选择您的操作系统，然后单击“下载”（在Mac上，您将下载crc-macos-amd64.tar.xz；在Linux上，下载crc-linux-amd64.tar.xz）。
+   您将被要求使用红帽登录进行连接。如果您没有，只需单击 "Create one now"。您 *不需要* 红帽的订阅。
    
-   Once logged in, download CodeReady Containers binary and the pull secret.
+   登录后，下载CodeReady容器二进制文件和拉取秘钥。
    
-1. Unzip the tar file.
+2. 解压tar文件。
 
    ```bash
    tar -xvzf crc-macos-amd64.tar.xz
    ```
    
-1. Move the crc binary under your path. Like
+3. 移动 crc 的二进制文件到您的路径下。例如
 
    ```bash
    sudo cp `pwd`/crc-macos-$CRCVERSION-amd64/crc /usr/local/bin
    ```
 
-1. Configure CRC in accordance with your hardware capabilities.
+4. 根据您的硬件情况配置CRC。
 
    ```bash
    crc config set memory 16000
    crc config set cpus 12
    crc setup
    ```
-1. Start the CRC and open the console.
+   
+5. 启动CRC并打开控制台。
 
    ```bash
    crc start --pull-secret-file pull-secret.txt
    crc console
    ```
 
-## Testing a patch
+## 测试补丁
 
-The following steps assume you have a running CRC cluster in your laptop. Note that these steps are not tested against a remote CRC cluster. 
+以下步骤假设您的笔记本电脑中有一个正在运行的CRC群集。请注意，这些步骤没有针对远程CRC群集进行测试。
 
-1. Access your environment through the `oc` command.
+1. 通过 `oc` 命令访问您的环境。
 
-   Type in the `crc oc-env` command to a shell.
+   在shell中输入 `crc oc-env` 命令。
    ```bash
    $ crc oc-env
    export PATH="/Users/<user>/.crc/bin/oc:$PATH"
-   # Run this command to configure your shell:
+   # 运行此命令以配置shell:
    # eval $(crc oc-env)
    ```
-   So you need to type in this to access the `oc` comamnd:
+   因此，您需要输入以下内容才能访问 `oc` 命令：
    ```
    eval $(crc oc-env)
    ```
 
-1. Log in to `oc`. After the CRC has started it will display a similar message:
+1. 登录 `oc`，CRC启动后，将显示类似的消息：
 
    ```
    To access the cluster, first set up your environment by following 'crc oc-env' instructions.
@@ -89,27 +90,27 @@ The following steps assume you have a running CRC cluster in your laptop. Note t
 
    Use the `oc login -u kubeadmin ...` command. 
 
-1. Get the URL of the local OpenShift cluster's internal private Docker repository by typing the command below.
+2. 通过输入下面的命令，获取本地OpenShift集群的内部私有Docker存储库的URL。
 
    ```bash
    $ oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}'
    default-route-openshift-image-registry.apps-crc.testing
    ```
 
-   By default it should be `default-route-openshift-image-registry.apps-crc.testing`. Change the steps above, if the displayed URL is different.
+   默认情况下，它应该是 `default-route-openshift-image-registry.apps-crc.testing`。如果显示的URL不同，请更改上述步骤。
 
-1. Prepare the Docker images.
+3. 准备Docker镜像。
 
-   You can read more about this at the bottom, in the *Using custom images* section.
+   您可以在底部的 *使用自定义镜像* 部分中阅读更多关于此的信息。
 
-1. Prepare the helm chart.
+4. 准备 helm chart。
 
-   If you want to use custom Docker images, replace the images in the chart's `values.yaml` config file.
+   如果要使用自定义Docker镜像，请替换chart的 `values.yaml` 配置文件中的镜像。
 
-   Note that if you manually pushed the Docker image to the `default-route-openshift-image-registry.apps-crc.testing` docker registry directly you need to have valid certs to access it. 
-   On OpenShift there's service for this: `image-registry.openshift-image-registry.svc`, which is easier to use.
+   请注意，如果手动将Docker映像推送到 `default-route-openshift-image-registry.apps-crc.testing` Docker注册服务内，则需要有有效的证书才能访问它。
+   如果在OpenShift上有更易于使用的服务：`image-registry.openshift-image-registry.svc`。
 
-   For example, if you want to override all of the three Docker images you should use the following configs:
+   例如，如果要覆盖所有三个Docker镜像，您应使用以下配置：
    ```yaml
    image:
      repository: image-registry.openshift-image-registry.svc:5000/yunikorn/yunikorn
@@ -127,27 +128,27 @@ The following steps assume you have a running CRC cluster in your laptop. Note t
      pullPolicy: Always
    ``` 
 
-   You can find it in the yunikorn-release repo's helm chart directory.
+   您可以在 yunikorn-release 的 helm chart 目录中找到它。
 
-1. Install the helm charts.
+5. 安装 helm charts。
 
    ```bash
    helm install yunikorn . -n yunikorn
    ```
 
-## Using custom images
+## 使用自定义镜像
 
 ### Podman
 
-1. Log in into Podman using the following command.
+1. 用如下命名登陆Podman。
 
    ```bash
    podman login --tls-verify=false -u kubeadmin -p $(oc whoami -t) default-route-openshift-image-registry.apps-crc.testing
    ```
 
-1. Build the image in the repository e.g. in shim using the generic `make image` command.
+2. 使用通用的 `make image` 命令在代码仓库中（例如在shim中）构建镜像。
 
-1. Verify that the image is present in the repository.
+3. 验证该镜像是否存在于镜像仓库中。
 
    ```bash
    podman images
@@ -156,27 +157,27 @@ The following steps assume you have a running CRC cluster in your laptop. Note t
    localhost/apache/yunikorn scheduler-latest e60e09b424d9 About a minute ago 543 MB
    ```
 
-## Directly pushing OS Image Registry
+## 直接推送OS镜像到注册服务内
 
-1. Create the images that you wish to replace.
+1. 创建您需要替换的镜像。
 
-   You can either build new images locally or use official (maybe mix both).
-      * For the -shim and -web images checkout the repository (optionally make your changes) and type the following command:
+   您可以在本地创建新的镜像，也可以使用官方镜像（可能两者混合）。
+      * 对于 -shim 和 -web 镜像，请在代码仓库中 checkout 出来（或者进行您自己的更改），然后输入以下命令：
       ```bash
       make clean image REGISTRY=default-route-openshift-image-registry.apps-crc.testing/<project>/<name>:<tag>
       ```
-      Note that in OpenShift a project is equivalent a Kubernetes namespace. The `yunikorn` project/namespace is recommended.
-      * Using an official image is possible by, retagging it with by the `docker tag` command. 
+      请注意，在OpenShift中，project相当于Kubernetes的namespace。建议使用 `yunikorn` 项目/命名空间。
+      * 可以通过 `docker tag` 命令重新标记来使用官方镜像。
       ```bash
       docker tag apache/yunikorn:scheduler-latest default-route-openshift-image-registry.apps-crc.testing/yunikorn/yunikorn:scheduler-latest
       ```
 
-1. Login to the Docker repository.
+2. 登录到Docker镜像仓库。
    ```bash
    docker login -u kubeadmin -p $(oc whoami -t) default-route-openshift-image-registry.apps-crc.testing
    ```
 
-1. Push the Docker images to the internal Docker repository
+3. 将Docker映像推送到内部Docker镜像仓库。
    ```
    docker push default-route-openshift-image-registry.apps-crc.testing/yunikorn/yunikorn:scheduler-latest
    ```
