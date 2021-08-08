@@ -1,6 +1,6 @@
 ---
 id: metrics
-title: Scheduler Metrics
+title: 调度器指标
 keywords:
  - metrics
 ---
@@ -24,27 +24,27 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-YuniKorn leverages [Prometheus](https://prometheus.io/) to record metrics. The metrics system keeps tracking of
-scheduler's critical execution paths, to reveal potential performance bottlenecks. Currently, there are two categories
-for these metrics:
+YuniKorn利用 [Prometheus](https://prometheus.io/) 记录指标。
+指标系统跟踪调度器的关键执行路径，以展示潜在的性能瓶颈。
+目前，这些指标分为两类：
 
-- scheduler: generic metrics of the scheduler, such as allocation latency, num of apps etc.
-- queue: each queue has its own metrics sub-system, tracking queue status.
+- 调度器：调度程序的通用指标，如分配延迟、应用程序数等。
+- 队列：每个队列都有自己的指标子系统，借以跟踪队列状态。
 
-all metrics are declared in `yunikorn` namespace.
+所有指标都在 `yunikorn` 命名空间中声明。
 
-## Access Metrics
+## 访问指标
 
-YuniKorn metrics are collected through Prometheus client library, and exposed via scheduler restful service.
-Once started, they can be accessed via endpoint http://localhost:9080/ws/v1/metrics.
+YuniKorn通过Prometheus客户端的库收集指标，并通过调度器restful服务进行公开。
+一旦启动，就可以通过路径 http://localhost:9080/ws/v1/metrics 来访问它们。
 
-## Aggregate Metrics to Prometheus
+## 到Prometheus的聚合指标
 
-It's simple to setup a Prometheus server to grab YuniKorn metrics periodically. Follow these steps:
+可以很简单地设置Prometheus服务器来定期获取YuniKorn指标。需要遵循以下步骤：
 
-- Setup Prometheus (read more from [Prometheus docs](https://prometheus.io/docs/prometheus/latest/installation/))
+- 设置Prometheus（请阅读[Prometheus文档](https://prometheus.io/docs/prometheus/latest/installation/)以获得更多信息）
 
-- Configure Prometheus rules: a sample configuration 
+- 配置Prometheus规则：如下为一个示例配置
 
 ```yaml
 global:
@@ -59,14 +59,13 @@ scrape_configs:
     - targets: ['docker.for.mac.host.internal:9080']
 ```
 
-- start Prometheus
+- 启动Prometheus
 
 ```shell script
 docker pull prom/prometheus:latest
 docker run -p 9090:9090 -v /path/to/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
 ```
 
-Use `docker.for.mac.host.internal` instead of `localhost` if you are running Prometheus in a local docker container
-on Mac OS. Once started, open Prometheus web UI: http://localhost:9090/graph. You'll see all available metrics from
-YuniKorn scheduler.
-
+如果您在本地 Mac OS 的 docker 容器中运行Prometheus，请使用 `docker.for.mac.host.internal` 来替代 `localhost`。
+启动后，请打开 Prometheus 的 web UI：http://localhost:9090/graph 。
+您将从中看到所有来自于YuniKorn调度器的可用指标。
