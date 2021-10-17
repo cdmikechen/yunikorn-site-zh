@@ -1,6 +1,6 @@
 ---
 id: cache_removal
-title: Scheduler cache removal design
+title: 调度器缓存删除设计
 ---
 
 <!--
@@ -21,38 +21,38 @@ title: Scheduler cache removal design
  * limitations under the License.
  -->
 
-# Proposal to combine Cache and Scheduler's implementation in the core
-This document describes the current state of the scheduler and cache implementation.
-It describes the changes planned based on the analysis that was done of the current behaviour.
+# 在内核中结合缓存和调度器实现的建议
+本文描述调度器和缓存实现的当前状态。
+它描述了基于对当前行为所做的分析而计划的更改。
 
-## Goals
-The goal is to provide the same functionality before and after the change.
-- unit tests before and after the merge must all pass.
-- Smoke tests defined in the core should all pass without major changes <sup id="s1">[definition](#f1)</sup>.
-- End-to-end tests that are part of the shim code must all pass without changes.
+## 目标
+本目标是在变更前后提供相同的功能。
+- 合并前后的单元测试必须全部通过。
+- 在内核定义的冒烟测试应全部通过并没有重大变化 <sup id="s1">[定义](#f1)</sup>.
+- 作为shim代码一部分的端到端测试必须全部通过而不发生更改。
 
-## Background 
-The current Scheduler Core is build up around two major components to store the data: the cache and scheduler objects.
-The cache objects form the base for most data to be tracked. 
-The Scheduler objects track specific in flight details and are build on top of a cache object.
- 
-The communication between the two layers uses a-synchronous events and in some cases direct updates.
-A synchronous update between the scheduler and the cache does mean that there is a short period the scheduler is "out of sync" with the cache.
-This short period can have an impact on the scheduling decisions. 
-One of which is logged as [YUNIKORN-169](https://issues.apache.org/jira/browse/YUNIKORN-169).
+## 背景 
+当前的调度器核心是围绕用于存储数据的两个主要组件构建的：缓存和调度器对象。
+缓存对象构成了要跟踪的大多数数据的基础。
+调度器对象跟踪特定于飞行(flight)细节并在缓存对象之上构建。
 
-A further point is the complexity that the two structure brings to the code.
-A distinct set of messages to communicate between the scheduler and the cache.
-A one on one mapping between the scheduler and cache objects shows that the distinction is probably more artificial than required.
+两层之间的通信使用一个同步事件，在某些情况下还使用直接更新。
+调度器和缓存之间的同步更新确实意味着调度器与缓存之间有一段短时间的“不同步”。
+这个短周期可对调度决策产生影响。
+其中一个影响被记录在 [YUNIKORN-169](https://issues.apache.org/jira/browse/YUNIKORN-169).
+
+另外一点是这两种结构给代码带来的复杂性。
+在调度器和缓存之间包含一组不同的通信消息。
+调度器和缓存对象之间的一对一映射表明，这种区别可能更需要人为控制这种依赖。
 ---
-<b id="f1"></b>definition: Major changes for smoke tests are defined as changes to the tests that alter use case and thus test flows. Some changes will be needed as checks made could rely on cache objects which have been removed. [↩](#s1)
-## Structure analysis
-### Objects
-The existing objects as per the code analysis.
-The overlap between the scheduler and the cache objects is shown by showing them at the same line.
-N/A means that there is no equivalent object in either the scheduler or cache.
+<b id="f1"></b>定义：冒烟测试的主要变化被定义为，在测试上改变用例和因而改变的变化。由于所做的检查可能依赖于已删除的缓存对象，因此需要进行一些更改。[↩](#s1)
+## 结构分析
+### 对象
+按照代码分析现有的对象。
+调度器和缓存对象之间的重叠部分通过在同一行显示它们来展现。
+N/A 表示调度器或缓存中没有等效对象。
 
-| Cache Object                   | Scheduler Object               |
+| 缓存对象                        | 调度器对象                       |
 | ------------------------------ | ------------------------------ |
 | ClusterInfo                    | ClusterSchedulingContext       |
 | PartitionInfo                  | partitionSchedulingContext     |
@@ -65,15 +65,15 @@ N/A means that there is no equivalent object in either the scheduler or cache.
 | QueueInfo                      | SchedulingQueue                |
 | SchedulingObjectState          | N/A                            |
 
-The `initializer` code that is part of the cache does not define a specific object.
-It contains a mixture of code defined at the package level and code that is part of the `ClusterInfo` object.
+作为缓存的一部分的 `initializer` 代码不定义特定的对象。
+它含有一个包级别定义的混合体代码和作为 `ClusterInfo` 对象一部分的代码。
 
-### Events
-Events defined in the core have multiple origins and destinations.
-Some events are only internal for the core between the cache and scheduler.
-These events will be removed.
+### 事件
+在内核定义的事件里有多个来源和目标。
+某些事件只在缓存和调度器之间的核心里。
+这些事件将被删除。
 
-| Event                                     | Flow                  | Proposal |
+| 事件                                       | 流程                  | 建议      |
 | ----------------------------------------- | --------------------- | -------- |
 | AllocationProposalBundleEvent             | Scheduler -> Cache    | Remove   |
 | RejectedNewApplicationEvent               | Scheduler -> Cache    | Remove   |
@@ -96,52 +96,54 @@ These events will be removed.
 | RMNodeUpdateEvent                         | Cache -> RM           | Modify   |
 |                                           |                       |          |
 
-Events that are handled by the cache will need to be handled by the core code after the removal of the cache.
-Two events are handled by the cache and the scheduler.
+移除缓存后，由缓存处理的事件将需要由核心代码处理。
+两个事件由缓存和调度器处理。
 
-## Detailed flow analysis
-### Object existing in both cache and scheduler
-The current design is based on the fact that the cache object is the basis for all data storage.
-Each cache object must have a corresponding scheduler object.
-The contract in the core around the cache and scheduler objects was simple.
-If the object exists in both scheduler and cache the object will be added to cache triggering the creation of the corresponding scheduler object.
-Removing the object is always handled in reverse: first from the scheduler which will trigger the removal from the cache.
-An example would be the creation of an application triggered by the `RMUpdateRequestEvent` would be processed by the cache.
+## 详细流程分析
+### 缓存和调度程序中同时存在的对象
+当前的设计基于这样一个事实：缓存对象是所有数据存储的基础。
+每个缓存对象必须有一个对应的调度器对象。
+核心程序内围绕缓存和调度程序对象的协议很简单。
+如果该对象同时存在于调度器和缓存中，则该对象将被添加到缓存中，从而触发相应调度器对象的创建。
+删除对象总是以相反的方式处理：首先从调度器中删除，这将触发从缓存中删除的方法。
+例如，由 `RMUpdateRequestEvent` 触发的应用程序的创建将由缓存处理。
 Creating a `SchedulerApplicationsUpdateEvent` to create the corresponding application in the scheduler.
+创建 `SchedulerApplicationsUpdateEvent` 会在调度器中创建相应的应用。
 
-When the application and object state were added they were added into the cache objects.
-The cache objects were considered the data store and thus also contain the state.
-There were no corresponding state objects in the scheduler.
-Maintaining two states for the same object is not possible. 
+当添加应用程序和对象状态时，它们也会被添加到缓存对象中。
+缓存对象被认为是数据存储，因此也包含了状态。
+调度器中没有相应的状态对象。
+不可能为同一对象维护两种状态。
 
-The other exceptions to that rule are two objects that were considered volatile and scheduler only.
-The `schedulingAllocationAsk` tracks outstanding requests for an application in the scheduler.
-The `reservation` tracks a temporary reservation of a node for an application and ask combination. 
+该规则的其他例外是被认为遗失的对象和只有调度器的对象。
+`schedulingAllocationAsk` 跟踪调度器中应用未完成的请求。
+`reservation` 跟踪一个节点对应用和请求组合的临时保留。
 
-### Operations to add/remove app
-The RM (shim) sends a complex `UpdateRequest` as defined in the scheduler interface.
-This message is wrapped by the RM proxy and forwarded to the cache for processing.
-The RM can request an application to be added or removed.
 
-**application add or delete**
+### 添加/删除应用的操作
+RM（shim）发送在调度器接口中定义的复合 `更新请求` 。
+此消息由RM代理封装并转发到缓存进行处理。
+RM可以请求添加或删除应用。
+
+**应用添加或删除**
 ```
-1. RMProxy sends cacheevent.RMUpdateRequestEvent to cache
+1. RM代理将 cacheevent.RMUpdateRequestEvent 发送到缓存
 2. cluster_info.processApplicationUpdateFromRMUpdate
-   2.1: Add new apps to the partition.
-   2.2: Send removed apps to scheduler (but not remove anything from cache)
+   2.1: 将新应用添加到分区。
+   2.2: 将删除的应用发送到调度器（但不从缓存中删除任何内容）
 3. scheduler.processApplicationUpdateEvent
-   3.1: Add new apps to scheduler 
-        (when fails, send RejectedNewApplicationEvent to cache)
-        No matter if failed or not, send RMApplicationUpdateEvent to RM.
-   3.2: Remove app from scheduler
-        Send RemovedApplicationEvent to cache
+   3.1: 将新应用添加到调度器
+        (当失败时候, 发送 RejectedNewApplicationEvent 到缓存)
+        无论是否失败，都将R MApplicationUpdateEvent 发送到 RM。
+   3.2: 从调度器删除应用
+        发送 RemovedApplicationEvent 到缓存
 ```
 
-### Operations to remove allocations and add or remove asks
-The RM (shim) sends a complex `UpdateRequest` as defined in the scheduler interface.
-This message is wrapped by the RM proxy and forwarded to the cache for processing.
-The RM can request an allocation to be removed.
-The RM can request an ask to be added or removed
+### 删除应用和添加或删除请求的操作
+RM（shim）发送在调度器接口中定义的复合 `更新请求` 。
+此消息由RM代理封装并转发到缓存进行处理。
+RM可以请求删除应用。
+RM可以请求添加或删除请求。
 
 **allocation delete**
 This describes the allocation delete initiated by the RM only

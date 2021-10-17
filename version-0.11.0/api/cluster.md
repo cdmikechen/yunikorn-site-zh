@@ -43,6 +43,7 @@ under the License.
 ```json
 [
     {
+        "partition": "[rm-123]default",
         "clusterName": "kubernetes",
         "totalApplications": "3",
         "failedApplications": "1",

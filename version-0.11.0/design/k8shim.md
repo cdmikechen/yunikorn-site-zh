@@ -1,6 +1,6 @@
 ---
 id: k8shim
-title: Kubernetes Shim Design
+title: Kubernetes Shim 设计
 ---
 
 <!--
