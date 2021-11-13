@@ -1,6 +1,6 @@
 ---
 id: gang_scheduling
-title: Gang scheduling design
+title: 帮派调度设计
 ---
 
 <!--
@@ -20,7 +20,7 @@ title: Gang scheduling design
  * See the License for the specific language governing permissions and
  * limitations under the License.
  -->
-# Gang Scheduling Implementation
+# 帮派调度实现
 A new way of scheduling applications by taking into account the demand for resources the application expects it will generate over time.
 It guarantees the expected demand resources for the application by reserving the resources.
 

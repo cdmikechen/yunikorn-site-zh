@@ -1,6 +1,6 @@
 ---
 id: namespace_resource_quota
-title: Namespace Resource Quota
+title: 命名空间资源配额
 ---
 
 <!--
@@ -22,19 +22,19 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-In K8s, user can setup namespace with [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) to limit aggregated resource consumption in this namespace. The validation of namespace resource quotas is handled in api-server directly, therefore YuniKorn simply honors the quotas like the default scheduler.
+在 K8s 中，用户可以使用 [资源配额](https://kubernetes.io/docs/concepts/policy/resource-quotas/) 设置命名空间，以限制该命名空间中的总计资源消耗。命名空间资源配额的验证直接在 api-server 中处理，因此 YuniKorn 像默认调度器一样简单地遵守配额。
 
-## Best practice
+## 最佳实践
 
-It is not mandatory to setup YuniKorn queues with respect of namespaces.
-However, in practice, it makes more sense to do so.
-Namespace is often used to set a cap for resource consumptions per user-group/team,
-YuniKorn queue is also meant to divide cluster resource into multiple groups.
-Let's go through an example.
+不强制针对名称空间设置 YuniKorn 队列。
+然而，在实践中，这样做更有意义。
+命名空间通常被用于给每个用户组/团队设置资源消耗上限，
+YuniKorn 队列也是为了将集群资源分成多个组。
+让我们来看一个例子。
 
-### 1. Setup namespace
+### 1. 设置命名空间
 
-Namespace: `advertisement`:
+命名空间: `advertisement`:
 ```
 apiVersion: v1
 kind: ResourceQuota
@@ -47,7 +47,7 @@ spec:
     limits.cpu: "200m"
     limits.memory: 4000Mi
 ```
-Create the namespace
+创建命名空间
 ```
 kubectl create namespace advertisement
 kubectl create -f ./advertisement.yaml --namespace=advertisement
@@ -65,9 +65,9 @@ requests.cpu     0     200m
 requests.memory  0     2000Mi
 ```
 
-### 2. Setup YuniKorn queues
+### 2. 设置 YuniKorn 队列
 
-Queue: `advertisement`:
+队列: `advertisement`:
 ```
 name: advertisement
 resources:
@@ -79,11 +79,11 @@ resources:
     memory: 2000
 ```
 
-ensure `QueueMaxResource <= NamespaceResourceQuotaRequests`
+确保 `QueueMaxResource <= NamespaceResourceQuotaRequests`
 
-### 3. Mapping applications to queues & namespace
+### 3. 将应用程序映射到队列和命名空间
 
-In a pod spec
+在一个 pod 的 spec 里
 
 ```
 apiVersion: v1
@@ -110,7 +110,7 @@ spec:
           memory: "1000M"
 ```
 
-Check Quota
+检查配额
 
 ```
 kubectl describe quota advertisement --namespace=advertisement
@@ -125,7 +125,7 @@ requests.cpu     50m   200m
 requests.memory  800M  2000Mi
 ```
 
-Now submit another application,
+现在提交另一个应用程序，
 
 ```
 apiVersion: v1
@@ -153,31 +153,31 @@ spec:
 ```
 
 pod will not be able to submitted to api-server, because the requested cpu `200m` + used cpu `100m` = `300m` which exceeds the resource quota.
+因为请求的 cpu `200m` + 使用的 cpu `100m` = `300m` 超过了资源配额，所以pod 将无法提交到 api-server。
 
 ```
 kubectl create -f pod_ns_adv_task1.yaml
 Error from server (Forbidden): error when creating "pod_ns_adv_task1.yaml": pods "task1" is forbidden: exceeded quota: advertisement, requested: limits.cpu=200m,requests.cpu=200m, used: limits.cpu=100m,requests.cpu=50m, limited: limits.cpu=200m,requests.cpu=200m
 ```
 
-## Future Work
+## 未来的工作
 
-For compatibility, we should respect namespaces and resource quotas.
-Resource quota is overlapped with queue configuration in many ways,
-for example the `requests` quota is just like queue's max resource. However,
-there are still a few features resource quota can do but queue cannot, such as
+为了兼容性，我们应该尊重命名空间和资源配额。
+资源配额在很多方面与队列配置重叠，例如，`requests` 配额就像队列的最大资源。 
+然而，还有一些资源配额可以做但队列不能做的功能，例如
 
-1. Resource `limits`. The aggregated resource from all pods in a namespace cannot exceed this limit.
-2. Storage Resource Quota, e.g storage size, PVC number, etc.
-3. Object Count Quotas, e.g count of PVCs, services, configmaps, etc.
-4. Resource Quota can map to priority class.
+1. 资源 `限制`。 来自命名空间中所有 Pod 的总计资源不能超过此限制。
+2. 存储资源配额，例如存储大小、PVC数量等。
+3. 对象数量配额，例如 PVC、service、configmap等的数量。
+4. 资源配额可以映射到进程优先级。
 
-Probably we can build something similar to cover (3) in this list.
-But it would be hard to completely support all these cases.
+也许我们可以构建类似于此列表中（3）的实现。
+但很难完全支持所有这些例子。
 
-But currently, setting applications mapping to a queue as well as a corresponding namespace is over complex.
-Some future improvements might be:
+但是目前，将应用程序映射到队列以及相应的命名空间过于复杂。
+未来的一些改进可能是：
 
-1. Automatically detects namespaces in k8s-shim and map them to queues. Behind the scenes, we automatically generates queue configuration based on namespace definition. Generated queues are attached under root queue.
-2. When new namespace added/updated/removed, similarly to (1), we automatically update queues.
-3. User can add more configuration to queues, e.g add queue ACL, add child queues on the generated queues.
-4. Applications submitted to namespaces are transparently submitted to corresponding queues.
+1. 自动检测 k8s-shim 中的命名空间并映射到队列中。在场景中，我们根据命名空间定义自动生成队列配置。生成的队列附加在根队列下。
+2. 当新的命名空间添加/更新/删除时，类似于（1），我们自动更新队列。
+3. 用户可以为队列添加更多配置，例如添加队列ACL，在生成的队列上添加子队列。
+4. 提交到命名空间的应用程序透明地提交到相应的队列中。
