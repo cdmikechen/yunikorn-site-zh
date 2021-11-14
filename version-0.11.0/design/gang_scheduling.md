@@ -21,234 +21,235 @@ title: 帮派调度设计
  * limitations under the License.
  -->
 # 帮派调度实现
-A new way of scheduling applications by taking into account the demand for resources the application expects it will generate over time.
-It guarantees the expected demand resources for the application by reserving the resources.
+一种新的调度应用程序的方法，它考虑了应用程序随着时间的推移预计会产生的资源需求。
+它通过预留资源来保证应用程序的预期需求资源。
 
-There are two parts to this implementation:
+这个实现有两个部分：
 *   Kubernetes Shim
-*   Core and scheduling
+*   Core（以后成为核心）和 scheduling (调度)
 
-This document describes the implementation on the core side.
+本文档描述了核心端的实现。
 
-## Document goals
-This document describes the following implementation design points:
-1. Define changes required for the shim to core communication (scheduler interface)
-2. Scheduler storage object changes
-3. Scheduler logic changes
+## 文档目标
+本文档描述了以下实现设计要点：
+1. 定义 shim 到核心通信所需的调整（调度器接口）
+2. 调度器存储对象变化
+3. 调度器逻辑变化
 
-## Excluded design points
-Currently, the Kubernetes shim side implementation is not covered in this design document.
+## 排除的设计点
+目前，本设计文档未涵盖 Kubernetes shim 端实现。
 
-Generalised preemption on the core side will _not_ be discussed in this design.
+本设计将 _不_ 讨论核心端的广义抢占。
 
-## Generic flow
-The flow is triggered by a pod that is submitted which triggers the application creation.
-This first pod is in the case of a Spark application, the driver pod.
-In case the flow is triggered from the creation of an application CRD there will not be a first pod.
-This is however outside the core scheduling logic. From the core side there should be no difference between the two cases.
-More details are in the chapter on the [Scheduler logic changes](#scheduler-logic-changes).
+## 通用流程
+该流由提交的 pod 触发，该 pod 触发应用程序创建。
+在 Spark 应用程序中，第一个 Pod 是驱动程序 Pod。
+如果流程是从应用程序 CRD 的创建触发的，则不会有第一个 pod。
+然而，这超出了核心调度逻辑。从核心方面来看，这两种情况应该没有区别。
+更多细节在 [调度器逻辑更改](#scheduler-logic-changes) 章节中。
 
-The flow of an application submitted. The numbers in the diagram correspond to the description below the diagram.
+提交申请的流程。图中的数字对应于图下方的描述。
 
-![generic flow](./../assets/gang_generic_flow.png)
+![通用流程](./../assets/gang_generic_flow.png)
 
-Combined flow for the shim and core during startup of an application:
-*   An application is submitted with TaskGroup(s) defined. (1)
-*   The shim creates the application and passes the application to the core. (2)
-*   The shim creates placeholder pods for each of the members of the TaskGroup(s) (3)
-*   The pods are processed and passed to the core, as per the normal behaviour, as AllocationAsks for the application with the correct info set. (4)
-*   The placeholder AllocationAsk’s are scheduled by the core as if they were normal AllocationAsk’s. (5)
-*   All Allocations, even if they are the result of the placeholder AllocationAsks being allocated by the scheduler, are communicated back to the shim.
-*   The original real pod is passed to the core as an AllocationAsk. (6)
-*   After the real pod and all all the placeholder pods are scheduled the shim starts the real pod that triggered the application creation. (7)
+应用程序启动期间shim和核心的组合流程：
+*   提交的应用程序定义了任务组。 (1)
+*   shim 创建应用程序并将应用程序传递给核心。 (2)
+*   shim 为任务组的每个成员创建 placeholder（占位）pod。 (3)
+*   按照正常行为，pod 作为具有正确信息集的应用程序的 AllocationAsk（资源分配请求）被处理并传递给核心。 (4)
+*   占位 AllocationAsk 由核心调度，就好像它们是正常的 AllocationAsk 一样。 (5)
+*   所有分配，即使它们是由调度器分配的占位 AllocationAsks 的结果，也会被传送回 shim。
+*   原始的实际 pod 作为 AllocationAsk 传递给核心。 (6)
+*   在实际 pod 和所有占位 pod 被调度后，shim 启动触发应用程序创建实际 pod。 (7)
 
-After the first, real, pod is started the following pods should all be handled in the same way (8):
-*   A real pod is created on k8s.
-*   The pod is processed and an AllocationAsk is created.
-*   The scheduler processes the AllocationAsk (more detail below) and replaces a placeholder with the real allocation.
+在第一个实际 pod 启动后，以下 pod 都应该以相同的方式处理 (8)：
+*   在 k8s 上创建了一个实际 pod。
+*   处理 pod 并创建一个 AllocationAsk。
+*   调度器处理 AllocationAsk（更多细节见下文）并用实际分配替换预留资源。
 
-## Application submit handling
-### Total placeholder size
+## 应用提交处理
+### 预留资源总大小
 
-The application if requesting one or more TaskGroups should provide the total size of all the TaskGroup members it is going to request.
-The total resource size is required for the case that the application is scheduled in a queue with a resource limit set.
+如果请求一个或多个任务组，应用程序应该提供它要请求的所有任务组成员的总大小。
+如果应用程序在限制了资源的队列中被调度，则需要总资源大小。
 
-The value is important for three cases:
-1. gang request is larger than the queue quota
-2. start of scheduling reservations
-3. resource pressure while scheduling reservations
+该值对于三种情况很重要：
+1. 帮派请求大于队列配额
+2. 开始预调度
+3. 预调度时的资源压力
 
-Further detail will be given below in [scheduling in queues with a quota set](#scheduling-in-queues-with-a-quota-set)
+进一步的细节将在下面的 [在设置了配额的队列中进行调度](#scheduling-in-queues-with-a-quota-set) 中给出
 
-The information passed on from the shim should be part of the AddApplicationRequest.
-Detailed information on the build up of the taskGroup(s), or the number of members are not relevant.
-The total resource requested by all taskGroup members is calculated using:
+从 shim 传递的信息应该是 AddApplicationRequest 中的一部分。
+任务组的建立或成员数量的详细信息不相关。
+所有任务组成员请求的总资源使用以下方法计算：
 
-![ask caclulation](./../assets/gang_total_ask.png)
+![请求计算](./../assets/gang_total_ask.png)
 
-This total placeholderAsk is added as an optional field to the AddApplicationRequest message.
-The calculation can be made by the shim based on the CRD or annotation provided in the pod description.
+placeholderAsk（占位/资源预留请求）的总计信息作为可选字段添加到 AddApplicationRequest 消息中。
+可以由 shim 根据 pod 描述中提供的 CRD 或注释进行计算。
 
-If the placeholderAsk is larger than the queue quota set on the queue the application must be rejected.
-This rejection is based on the fact that we cannot in any way honor the request.
-For all other cases the application is accepted and will be scheduled as per normal.
+如果占位请求大于队列上设置的队列配额，则必须拒绝申请。
+这种拒绝是基于我们不能以任何方式满足请求的事实。
+对于所有其他情况，会接受申请并进行正常的安排。
 
-### Handling queue with a FAIR sort policy
-If an application is submitted to a queue that has a FAIR sort policy set it must be rejected.
+### 使用 FAIR（公平）排序策略处理队列
 Queue sorting for the queue that the application runs in must be set to _FIFO_ or _StateAware_.
+如果将应用程序提交到设置了 FAIR 排序策略的队列，则必须拒绝该应用程序。
+应用程序运行所在队列的队列排序必须设置为 _FIFO_ 或 _StateAware_。
 
-Other queue policies cannot guarantee that there is only one _New_ application processed at a time.
-In the case of the _FAIR_ policy we could be allocating multiple _New_ applications at the same time making quota management impossible to enforce.
-The other side effect of using _FAIR_ as a policy could be that we get multiple applications with only a partial allocated guarantee.
+其他队列策略不能保证一次只处理一个 _新的_ 应用程序。
+在 _公平_ 策略的情况下，我们可以同时分配多个 _新的_ 应用程序，从而无法强制实施配额管理。
+使用 _公平_ 策略的另一个副作用可能是我们得到多个应用程序但只有部分能保证分配。
 
-Auto-scaling can be triggered due to the fact that the core can not place the placeholders on any node.
-In case the queue would use the _FAIR_ sorting this could lead to other applications taking the scaled up nodes instead of the placeholders again breaking the gang.
+由于核心无法将占位情况放置在任何节点上，因此可以触发自动缩放。
+如果队列使用 _公平_ 排序，这可能会导致其他应用程序使用放大的节点而不是预留资源从而再次破坏帮派调度。
 
-## Scheduling in queues with a quota set
-The main case already described above is handling a total placeholder request size that is larger than the quota set on the queue.
-When the application is submitted we can already assess that we cannot satisfy that requirement and reject the request.
+## 在设置了配额的队列中进行调度
+上面已经描述的主要情况是处理大于队列上设置的配额的总占位请求大小。
+提交申请时，我们已经可以评估我们无法满足该要求并拒绝该请求。
 
-In the case that the total placeholder ask does fit in the queue we should not start scheduling until there are enough resources available in the queue to satisfy the total request.
-However this does not stop scheduling of other applications in the queue(s).
-Applications that are already running in the queue could ask for more resources.
-From an application perspective there is no limit set on the resource it can request.
-The gang defined on the application is a guaranteed number of resources, not a maximum number of resources the application can request.
+在总占位请求确实适合队列的情况下，我们不应该开始调度，直到队列中有足够的可用资源来满足总请求。
+然而，这不会停止对队列中其他应用程序的调度。
+已在队列中运行的应用程序可能会请求更多资源。
+从应用程序的角度来看，它可以请求的资源没有限制。
+应用程序上定义的联邦是有保证的资源数量，而不是应用程序可以请求的最大资源数量。
 
-This is complicated by the fact that we have a queue hierarchy.
-There is the possibility that the quota is not set directly on the queue the application is running.
-It could be set on one of the parent queues.
-This case could become complex, and we need to make sure that we keep in mind that we could live lock the scheduling.
+我们拥有的队列层次结构是很复杂的。
+配额可能不是直接在应用程序运行的队列上设置的。
+它可以设置在某一个父队列上面。
+这种情况可能会变得复杂，我们需要保证记住我们可以实时锁定调度。
 
-In this first phase we should focus on the case that the gang resources requested are also the maximum number of resources the application will request.
-When we look at the queues we should focus on a single queue level with quotas.
+在第一阶段中，我们应该关注这样一种情况，即请求的联邦资源也是应用程序将请求的最大资源数。
+当我们查看队列时，我们应该关注具有配额的单个队列级别。
 
-These two assumptions are correct for the spark use case without dynamic allocation using a dynamic mapping from a namespace to a queue.
+这两个假设对于没有使用从命名空间到队列的动态映射进行动态分配的 spark 用例是正确的。
 
-Furthermore, we assume that the quota set on the queue can be totally allocated.
-If the cluster does not have enough resources the cluster will scale up to the size needed to provide all queues with their full quota.
+此外，我们假设队列上设置的配额可以完全分配。
+如果集群没有足够的资源，集群将扩展，直到为所有队列提供全部配额所需的大小。
 
-The follow up should add further enhancements for deeper hierarchies and dynamic allocation support.
-This could also leverage preemption in certain use cases, like preempting allocations from applications over their total gang size.
+这也可以在某些用例中利用抢占，例如抢占应用程序超过其总的联邦大小的分配。
+在某些用例中，也可以利用抢占，比如在应用程序的总帮派规模上抢占分配。
 
-Further enhancements could be added by allowing specifying the time and application will wait for the placeholders to be allocated, or the time to start using the held resources.
+通过允许指定时间和应用程序来等待占位分配，或开始使用保留资源的时间，可以添加进一步的增强功能。
 
-## Scheduler logic changes
-The scheduler logic change needs to account for two parts of cycle:
-*   The placeholder asks and their allocation.
-*   The allocation replacing the placeholder.
+## 调度器逻辑变化
+调度器逻辑的变化需要考虑周期的两个部分：
+*   占位请求及其分配。
+*   替换占位的分配。
 
-The basic assumption is that all pods will generate a placeholder pod request to the core.
-This includes the pod that triggered the application creation if we do not use the application CRD.
-This assumption is needed to make sure that the scheduler core can behave in the same way for both ways of submitting the application.
-The placeholder pods must be communicated to the core before the real pod.
+我们的基本假设是所有 pod 都会向核心生成占位 pod 请求。
+如果我们不使用应用程序 CRD，这包括触发应用程序创建的 pod。
+这个假设是必须的，才能确保调度器核心可以在提交应用程序的两种方式中以相同的方式运行。
+占位 Pod 必须在真正的 Pod 之前与核心通信。
 
-Changes for the placeholder AllocationAsks are the first step.
-As part of the creation of the application the AllocationAsks get added.
-The addition of an AllocationsAsk normally will trigger the application state change as per the scheduling cycle.
-It moves the Application from a _New_ state to an _Accepted_ state. This is as per the current setup, and does not change.
+更改占位 AllocationAsks 是第一步。
+作为应用程序创建的一部分，AllocationAsks 被添加。
+添加 AllocationsAsk 通常会根据调度周期触发应用程序状态的更改。
+它将应用程序从 _New_ 状态移动到 _Accepted_ 状态。这与当前设置一致，并且不会更改。
 
-However, in the case that the AllocationAsk has the _placeholder_ flag set the allocation should not trigger a state change, the application stays in _Accepted_ state.
-AllocationAsks are processed until the application has no pending resources.
-AllocationAsks that do not have a _placeholder_ flag set should be ignored as a safety precaution.
-All resulting Allocations for the placeholder pods are confirmed to the shim as per the normal steps.
-This process continues until there are no more placeholder pods to be allocated.
+但是，在 AllocationAsk 设置了 _placeholder_ 标志的情况下，分配不应触发状态更改，应用程序保持在 _Accepted_ 状态。
+处理分配请求，直到应用程序没有 pending （挂起）的资源。
+作为安全预防措施，应忽略未设置 _placeholder_ 标志的 AllocationAsk。
+占位 Pod 的所有结果分配都按照正常步骤向 shim 确认。
+这个过程一直持续到没有更多的占位 pod 被分配。
 
-The shim at that point should create the AllocationAsk for the real pod(s) that it has buffered.
-The core cannot and must not assume that there is only one task group per application.
-The core is also not in the position to assume that it has received all AllocationAsks that belong to the task group if option 1 as described above is used by a shim.
-This is also why we have the assumption that every pod creates a placeholder request to the core.
+此时的 shim 应为已缓冲的真实 pod 创建分配任务。
+核心不能也不需假设每个应用程序只有一个任务组。
+如果 shim 使用了上述选项1，则核心也无法假设它已收到属于任务组的所有分配任务。
+这也是为什么我们假设每个 pod 都会向核心创建一个占位请求。
 
-The second change is the replacement of the placeholder pods with the real pods.
-The shim creates an AllocationAsk with the _taskGroupName_ set but the _placeholder_ flag is not set.
+第二个变化是用真正的 pod 替换了占位 pod。
+填充程序创建了一个设置了 _任务组名称_ 但未设置 _placeholder_ 标志的 AllocationAsk。
 
-The process described here lines up with the process for generic pre-emption.
-An allocation is released by the core and then confirmed by the shim.
-For gang scheduling we have a simple one new to one release relation in the case of pre-emption we can use the same flow with a one new to multiple release relation.
+这里描述的过程与通用抢占的过程一致。
+分配由核心释放，然后由 shim 确认。
+对于帮派调度，我们有一个简单的一对一释放关系，在抢占的情况下，我们可以使用具有一对多释放关系的相同流程。
 
-The scheduler processes the AllocationAsk as follows:
-1. Check if the application has an unreleased allocation for a placeholder allocation with the same _taskGroupName._ If no placeholder allocations are found a normal allocation cycle will be used to allocate the request.
-2. A placeholder allocation is selected and marked for release. A request to release the placeholder allocation is communicated to the shim. This must be an async process as the shim release process is dependent on the underlying K8s response which might not be instantaneous.  
-   NOTE: no allocations are released in the core at this point in time.
-3. The core “parks” the processing of the real AllocationAsk until the shim has responded with a confirmation that the placeholder allocation has been released.  
-   NOTE: locks are released to allow scheduling to continue
-4. After the confirmation of the release is received from the shim the “parked” AllocationAsk processing is finalised.
-5. The AllocationAsk is allocated on the same node as the placeholder used.
-   The removal of the placeholder allocation is finalised in either case. This all needs to happen as one update to the application, queue and node.
-    * On success: a new Allocation is created.
-    * On Failure: try to allocate on a different node, if that fails the AllocationAsk becomes unschedulable triggering scale up. 
-6. Communicate the allocation back to the shim (if applicable, based on step 5)
+调度器按如下方式处理 AllocationAsk：
+1. 检查应用程序是否有未释放的分配给具有相同 _任务组名称_ 的占位分配。如果没有找到占位分配，将使用正常的分配周期来分配请求。
+2. 一个占位分配被选择并标记为释放。释放占位分配的请求被传送到 shim。这必须是一个异步过程，因为 shim 释放过程取决于底层的 K8s 响应，这可能不是即时的。
+   注意：此时核心中没有释放任何分配。
+3. 核心“暂停”处理真正的 AllocationAsk，直到 shim 响应确认已释放占位分配。
+   注意：释放锁以允许调度继续
+4. 在收到来自 shim 的释放确认后，“暂停的” AllocationAsk 处理会结束。
+5. AllocationAsk 分配在与使用的占位相同的节点上。
+   在任何一种情况下，占位分配的删除都将完成。这一切都需要作为对应用程序、队列和节点的一次更新来实现。
+    * 成功时：创建一个新的分配。
+    * 失败时：尝试在不同的节点上分配，如果失败，AllocationAsk 变得不可调度，并触发扩展。
+6. 将分配传达回shim（如果适用，基于步骤 5）
 
-## Application completion
-Application completion has been a long standing issue.
-Currently, applications do not transition to a _completed_ state when done.
-The current states for the application are [documented here](./scheduler_object_states.md).
-However, at this point in time an application will not reach the _completed_ state and will be stuck in _waiting_.
+## 应用程序完成
+应用程序完成一直是一个长期存在的问题。
+目前，应用程序在完成时不会转换到 _completed_ 状态。
+应用程序的当前状态是 [参考文档](./scheduler_object_states.md)。
+但是，此时应用程序将不会达到 _completed_ 状态，而是停留在 _waiting_ 状态。
 
-This provides a number of issues specifically around memory usage and cleanup of queues in long running deployments.
+这提供了许多问题，特别是在长时间运行部署中的内存使用和队列清理的情况下。
 
-### Definition
-Since we cannot rely on the application, running as pods on Kubernetes, to show that it has finished we need to define when we consider an application _completed_.
-At this point we are defining that an application is _completed_ when it has been in the _waiting_ state for a defined time period.
-An application enters the waiting state at the time that there are no active allocations (allocated resources > 0) and pending allocation asks (pending resources > 0).
+### 定义
+由于我们不能依赖在 Kubernetes 上作为 Pod 运行的应用程序来表明它已经完成，因此我们需要定义何时考虑应用一个程序的 _完成_ 。
+在这一点上，我们定义了一个应用程序在定义的时间段内处于 _等待_ 状态时，它会变成 _完成_ 。
+当没有活动分配（已分配资源 > 0）和挂起分配请求（挂起资源 > 0）时，应用程序进入等待状态。
 
-The transition to a _waiting_ state is already implemented.
-The time out of the _waiting_ state is new functionality.
+向 _waiting_ 状态的转换已经实现。
+_waiting_ 状态的超时是一项新的功能。
 
-Placeholders are not considered active allocations.
-Placeholder asks are considered pending resource asks.
-These cases will be handled in the [Cleanup](#Cleanup) below.
+资源预留不被视为活动分配。
+占位请求被视为待处理的资源请求。
+这些情况将在下面的 [清理](#Cleanup) 中处理。
 
-### Cleanup
-When we look at gang scheduling there is a further issue around unused placeholders, placeholder asks and their cleanup.
-Placeholders could be converted into real allocations at any time there are pending allocation asks or active allocations.
+### 清理
+当我们查看帮派调度时，还有一个关于未使用的预留资源、占位请求及其清理的问题。
+预留资源可以在有待处理分配请求或活动分配的任何时候转换为实际分配。
 
-Placeholder asks will all be converted into placeholder allocations before the real allocations are processed.
+在处理实际分配之前，占位请求将全部转换为占位分配。
 
-Entry into the _waiting_ state is already handled.
-If new allocation asks are added to the application it will transition back to a _running_ state.
-At the time we entered the waiting state. there were no pending requests or allocated resources.
-There could be allocated placeholders.
+进入 _waiting_ 状态已被处理。
+如果将新的分配请求添加到应用程序中，它将转换回 _running_ 状态。
+当我们进入了等待状态，将没有待处理的请求或分配的资源。
+只有可以分配的预留资源。
 
-For the entry into the _waiting_ state the application must be clean.
-However, we can not guarantee that all placeholders will be used by the application during the time the application runs.
-Transitioning out of the _waiting_ state into the _completed_ state requires no (placeholder) allocations or asks at all.
-The second case that impact transitions is that not all placeholder asks are allocated, and the application thus never requests any real allocations.
-These two cases could prevent an application from transitioning out of the _accepted_, or the _waiting_ state.
+为了进入 _waiting_ 状态，应用程序必须是干净的。
+但是，我们不能保证在应用程序运行期间应用程序将使用所有预留资源。
+从 _waiting_ 状态转换到 _completed_ 状态根本不需要（占位）分配或请求。
+影响转换的第二种情况是并非所有占位请求都被分配，因此应用程序从不请求任何真正的分配。
+这两种情况可能会阻止应用程序转换出 _accepted_ 或 _waiting_ 状态。
 
-Processing in the core thus needs to consider two cases that will impact the transition out of specific states:
-1. Placeholder asks pending (exit from _accepted_)
-2. Placeholders allocated (exit from _waiting_)
+因此，核心中的处理需要考虑两种会影响特定状态的转换的情况：
+1. 占位请求挂起（退出 _accepted_ ）
+2. 占位分配（退出 _waiting_ ）
 
-Placeholder asks pending:  
-Pending placeholder asks are handled via a timeout.
-An application must only spend a limited time waiting for all placeholders to be allocated.
-This timeout is needed because an application’s partial placeholders allocation may occupy cluster resources without really using them.
+占位请求挂起：
+挂起的占位符是通过超时来处理的。
+应用程序只能花费有限的时间等待分配所有预留资源。
+这个超时是必需的，因为应用程序的部分占位分配可能会占用集群资源而没有真正使用它们。
 
-An application could be queued for an unknown time, waiting for placeholder allocation to start.
-The timeout for placeholder asks can thus not be linked to the creation of the application or the asks.
-The timeout must start at the time the first placeholder ask is allocated.
+应用程序可能排队等待未知时间，等待占位分配开始。
+因此，占位请求的超时不能与应用程序或请求的创建相关联。
+超时必须在分配第一个占位请求时开始。
 
-The application cannot request real allocations until all placeholder asks are allocated.
-A placeholder ask is also tracked by the shim as it represents a pod.
-Releasing an ask in the core requires a message to flow between the core and shim to release that ask.
-However, in this case the timeout for allocating placeholder asks triggers an application failure.
-When the timeout is triggered and placeholder asks are pending the application will transition from the state it is in, which can only be _accepted_, to _killed_.
+在所有占位请求都被分配之前，应用程序不能请求真正的分配。
+占位请求也由 shim 跟踪，因为它代表一个 pod。
+在核心中释放请求需要消息在核心和 shim 之间流动以释放该请求。
+但是，在这种情况下，分配预留资源的超时会触发应用程序失败。
+当超时被触发并且占位请求挂起时，应用程序将从它所处的状态转换为 _killed_ 。
 
-The application state for this case can be summarised as:
-*   Application status is _accepted_
-*   Placeholder allocated resource is larger than zero, and less than the _placeholderAsk_ from the _AddApplicationRequest_
-*   Pending resource asks is larger than zero
+本案例的应用状态可以概括为：
+*   申请状态为 _accepted_
+*   占位分配的资源大于零，并且小于 _AddApplicationRequest_ 中的 _placeholderAsk_
+*   待处理资源请求大于零
 
-Entering into the _killed_ state must move the application out of the queue automatically.
+进入 _killed_ 状态必须自动将应用程序移出队列。
 
-The state change and placeholder allocation releases can be handled in a single UpdateResponse message. The message will have the following content:
-*   _UpdatedApplication_ for the state change of the application
-*   one or more _AllocationRelease_ messages, one for each placeholder, with the  _TerminationType_ set to TIMEOUT
-*   one or more AllocationAskRelease messages with the _TerminationType_ set to TIMEOUT
+状态更改和占位分配释放可以在单个 UpdateResponse 消息中处理。 该消息将包含以下内容：
+* _UpdatedApplication_ 用于应用程序的状态变化
+* 一个或多个 _AllocationRelease_ 消息，每个占位一个，_TerminationType_ 设置为 TIMEOUT
+* 一条或多条 _TerminationType_ 设置为 TIMEOUT 的 AllocationAskRelease 消息
 
-The shim processes the AllocationAskRelease messages first, followed by the _AllocationResponse_ messages, and finally the _UpdatedApplication_ message. The application state change to the _killed_ state on the core side is only dependent on the removal of all placeholders pods, not on a response to the _UpdatedApplication _message.
+shim 首先处理 AllocationAskRelease 消息，然后是 _AllocationResponse_ 消息，最后是 _UpdatedApplication_ 消息。应用程序状态在核心端更改为 _killed_ 状态仅取决于移除所有占位 pod，而不取决于对 _UpdatedApplication_ 消息的响应。
 
-![placeholder timeout](./../assets/gang_timeout.png)
+![占位超时](./../assets/gang_timeout.png)
 
 Combined flow for the shim and core during timeout of placeholder:
 *   The core times out the placeholder allocation. (1)
