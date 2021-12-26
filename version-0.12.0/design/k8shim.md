@@ -47,6 +47,8 @@ admission controller 在一个单独的pod中运行，它基于如下的方式�
    - 添加 `queue` 标签
      - 当标签 `queue` 存在时，重用给定的名称。注意，如果启用了放置规则，则忽略标签中设置的值。
      - 否则，添加 `queue: root.default`
+  - 添加 `disableStateAware` 标签
+     - 如果 pod 被准入控制器分配了一个生成的 applicationId，还要设置 `disableStateAware: true`。 这会导致生成的应用程序立即从 `Starting` 状态转换为 `Running` 状态，这样它就不会阻塞其他应用程序。 
 2. `validation webhook` 验证 configmap 中的的配置集
    - 这用于防止将格式错误的配置写入configmap
    - validation webhook 调用调度器 [validation REST API](api/scheduler.md#configuration-validation) 以验证configmap更新

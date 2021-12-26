@@ -46,9 +46,15 @@ under the License.
         "lastStateTransitionTime": "2021-05-20 12:25:49.018953 +0530 IST m=+0.005949717",
         "capacity": {
             "capacity": "[memory:1000 vcore:1000]",
-            "usedcapacity": "[memory:800 vcore:500]"
+            "usedCapacity": "[memory:800 vcore:500]"
         },
-        "nodeSortingPolicy": "fair",
+        "nodeSortingPolicy": {
+            "type": "fair",
+            "resourceWeights": {
+                "memory": 1.5,
+                "vcore": 1.3
+            }
+        },
         "applications": {
             "New": 5,
             "Pending": 5,
@@ -61,9 +67,15 @@ under the License.
         "lastStateTransitionTime": "2021-05-19 12:25:49.018953 +0530 IST m=+0.005949717",
         "capacity": {
             "capacity": "[memory:2000 vcore:2000]",
-            "usedcapacity": "[memory:500 vcore:300]"
+            "usedCapacity": "[memory:500 vcore:300]"
         },
-        "nodeSortingPolicy": "fair",
+        "nodeSortingPolicy": {
+            "type": "binpacking",
+            "resourceWeights": {
+                "memory": 0,
+                "vcore": 4.11
+            }
+        },
         "applications": {
             "New": 5,
             "Running": 10,
@@ -192,7 +204,7 @@ For the default queue hierarchy (only `root.default` leaf queue exists) a simila
     "partitionName": "[mycluster]default",
     "capacity": {
         "capacity": "map[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:80000 pods:110 vcore:60000]",
-        "usedcapacity": "0"
+        "usedCapacity": "0"
     },
     "nodes": null,
     "queues": {
@@ -200,9 +212,9 @@ For the default queue hierarchy (only `root.default` leaf queue exists) a simila
         "status": "Active",
         "capacities": {
             "capacity": "[]",
-            "maxcapacity": "[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:80000 pods:110 vcore:60000]",
-            "usedcapacity": "[memory:8000 vcore:8000]",
-            "absusedcapacity": "[memory:54 vcore:80]"
+            "maxCapacity": "[ephemeral-storage:75850798569 hugepages-1Gi:0 hugepages-2Mi:0 memory:80000 pods:110 vcore:60000]",
+            "usedCapacity": "[memory:8000 vcore:8000]",
+            "absUsedCapacity": "[memory:54 vcore:80]"
         },
         "queues": [
             {
@@ -210,9 +222,9 @@ For the default queue hierarchy (only `root.default` leaf queue exists) a simila
                 "status": "Active",
                 "capacities": {
                     "capacity": "[]",
-                    "maxcapacity": "[]",
-                    "usedcapacity": "[memory:8000 vcore:8000]",
-                    "absusedcapacity": "[]"
+                    "maxCapacity": "[]",
+                    "usedCapacity": "[memory:8000 vcore:8000]",
+                    "absUsedCapacity": "[]"
                 },
                 "queues": null,
                 "properties": {}
@@ -1237,5 +1249,70 @@ checksum: BAB3D76402827EABE62FA7E4C6BCF4D8DD9552834561B6B660EF37FED9299791
             "DiagnosisMessage": "Reservation/node nr ratio: [0.000000]"
         }
     ]
+}
+```
+
+
+## 检索完整的状态转储
+
+在单个响应中检索以下信息的 Endpoint ：
+
+* 分区列表
+* 应用程序列表（正在运行和已完成）
+* 应用历史
+* 节点
+* 节点的利用
+* 通用集群信息
+* 集群利用率
+* 容器历史
+* 队列
+
+**URL** : `/ws/v1/fullstatedump`
+
+**方法** : `GET`
+
+**是否需要认证** : NO
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+**样例内容**
+
+这个 REST 查询的输出可能相当大，它是已经那些演示过数据的组合。
+
+### 失败返回
+
+**返回代码**: `500 Internal Server Error`
+
+## 启用或禁用定期状态转储到运行 Yunikorn 的容器内的外部文件
+
+允许定期写入状态转储的Endpoint。默认情况下，它是 60 秒。输出到一个名为 `yunikorn-state.txt` 的文件中。在当前版本中，该文件位于 Yunikorn 当前工作目录中，不可配置。
+
+尝试连续多次启用或禁用此功能会导致错误。
+
+**URL** : `/ws/v1/periodicstatedump/{switch}/{periodSeconds}`
+
+**方法** : `PUT`
+
+**是否需要认证** : NO
+
+`{switch}` 的值可以是 `disable` 或 `enable`。`{periodSeconds}` 定义了应该多久获取一次状态快照。它应该是一个正整数，并且只在 `enable` 的情况下处理。
+
+### 成功返回
+
+**返回代码** : `200 OK`
+
+### 错误返回
+
+**返回代码**: `400 Bad Request`
+
+**样例内容**
+
+```json
+{
+    "status_code": 400,
+    "message": "required parameter enabled/disabled is missing",
+    "description": "required parameter enabled/disabled is missing"
 }
 ```
