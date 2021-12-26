@@ -94,7 +94,7 @@ partitions:
 
 YuniKorn 通过利用资源队列来管理资源。资源队列具有以下特征：
 - 队列可以有 **等级制的** 结构
-- 每个队列都可以预设 **最小/最大容量** ，其中最小容量定义了保证资源，最大容量定义了资源限制（又名资源配额）
+- 每个队列都可以预设 **最小/最大容量** ，其中最小容量定义了保障资源，最大容量定义了资源限制（又名资源配额）
 - 任务必须在某个子队列下运行
 - 队列可以是 **静态的**（从配置文件加载）或 **动态的**（由 YuniKorn 内部管理）
 - 队列级别 **资源公平** 由调度器强制执行
@@ -192,26 +192,26 @@ partitions:
 
 ### 放置规则
 
-The placement rules are defined and documented in the [placement rule](placement_rules.md) document.
+放置规则在 [放置规则](placement_rules.md) 文档中定义和记录。
 
-Each partition can have only one set of placement rules defined. 
-If no rules are defined the placement manager is not started and each application *must* have a queue set on submit.  
+每个分区只能定义一组放置规则。
+如果没有定义规则，则不会启动放置管理器，并且每个应用程序 *必须* 在提交时设置一个队列。
 
-### Limits
-Limits define a set of limit objects for a partition or queue.
-It can be set on either the partition or on a queue at any level.
+### 限制
+限制为分区或队列定义了一组限制对象。
+它可以设置在任何级别的分区或队列上。
 ```yaml
 limits:
   - limit: <description>
   - limit: <description>
 ```
 
-A limit object is a complex configuration object.
-It defines one limit for a set of users and or groups.
-Multiple independent limits can be set as part of one `limits` entry on a queue or partition.
-Users and or groups that are not part of the limit setting will not be limited.
+限制对象是一个复杂的配置对象。
+它为一组用户和/或组定义了一个限制范围。
+可以将多个独立限制设置为队列或分区上一个 `limits` 内容的一部分。
+不属于限制设置的用户和/或组将不受限制。
 
-A sample limits entry:
+一个简单的限制内容如下:
 ```yaml
 limits:
   - limit: <description>
@@ -227,48 +227,46 @@ limits:
       <resource name 2>: <0..maxint>
 ```
 
-Limits are applied recursively in the case of a queue limit.
-This means that a limit on the `root` queue is an overall limit in the cluster for the user or group.
-A `root` queue limit is thus also equivalent with the `partition` limit.
+队列限制可以递归使用。
+这意味着对 `root` 队列的限制是集群中用户或组的总体限制。
+因此，`root` 队列限制也与 `partition` 限制等效。
 
-The limit object parameters:
+限制对象参数：
 * limit
 * users
 * groups
 * maxapplications
 * maxresources
 
-The _limit_ parameter is an optional description of the limit entry.
-It is not used for anything but making the configuration understandable and readable. 
+_limit_ 参数是限制条目的可选描述。
+它不用于任何用途，只是使配置易于理解和可读。
 
-The _users_ and _groups_ that can be configured can be one of two types:
-* a star "*" 
-* a list of users or groups.
+ _users_ 和 _groups_ 配置可以是以下两种类型之一：
+* 星号 “*”
+* 用户或组列表
 
-If the entry for users or groups contains more than one (1) entry it is always considered a list of either users or groups.
-The star "*" is the wildcard character and matches all users or groups.
-Duplicate entries in the lists are ignored and do not cause a parsing error.
-Specifying a star beside other list elements is not allowed.
+如果用户或组的内容包含多于一个条目，则它始终被视为用户或组的列表。
+星号 “*” 是通配符，匹配所有用户或组。
+列表中的重复条目将被忽略并且不会导致解析错误。
+不允许在其他列表元素旁指定星号。
 
-_maxapplications_ is an unsigned integer value, larger than 1, which allows you to limit the number of running applications for the configured user or group.
-Specifying a zero maximum applications limit is not allowed as it would implicitly deny access.
-Denying access must be handled via the ACL entries.  
+_maxapplications_ 是一个大于 1 的无符号整数值，它允许您为配置的用户或组运行的应用程序的数量做以限制。
+不允许指定零作为最大应用程序限制，因为它会隐式拒绝访问。
+拒绝访问必须通过 ACL 条目进行处理。
 
-The _maxresources_ parameter can be used to specify a limit for one or more resources.
-The _maxresources_ uses the same syntax as the [resources](#resources) parameter for the queue. 
-Resources that are not specified in the list are not limited.
-A resource limit can be set to 0.
-This prevents the user or group from requesting the specified resource even though the queue or partition has that specific resource available.  
-Specifying an overall resource limit of zero is not allowed.
-This means that at least one of the resources specified in the limit must be greater than zero.
+列表中未指定的资源不受限制。
+资源限制可以设置为0。
+这会阻止用户或组请求指定的资源，即使队列或分区具有可用的特定资源。
+不允许将总体资源限制指定为零。
+这意味着限制中指定的资源至少有一种必须大于零。
 
-If a resource is not available on a queue the maximum resources on a queue definition should be used.
-Specifying a limit that is effectively zero, _maxapplications_ is zero and all resource limits are zero, is not allowed and will cause a parsing error.
+如果队列上的资源不可用，则应使用队列定义上的最大资源。
+指定一个实际上为零的限制、_maxapplications_ 为零并且所有资源限制都为零，这都是不允许的，并且会导致解析错误。
  
-A limit is per user or group. 
-It is *not* a combined limit for all the users or groups together.
+限制分配给每个用户或组的。
+它 *不是* 所有用户或组的组合限制。
 
-As an example: 
+举个例子： 
 ```yaml
 limit: "example entry"
 maxapplications: 10
@@ -276,49 +274,49 @@ users:
 - sue
 - bob
 ```
-In this case both the users `sue` and `bob` are allowed to run 10 applications.
+在这个例子里，用户 `sue` 和 `bob` 都被允许运行10个应用程序。
 
-### Resources
-The resources entry for the queue can set the _guaranteed_ and or _maximum_ resources for a queue.
-Resource limits are checked recursively.
-The usage of a leaf queue is the sum of all assigned resources for that queue.
-The usage of a parent queue is the sum of the usage of all queues, leafs and parents, below the parent queue. 
+### 资源
+队列的资源内容可以为队列设置 _guaranteed_ 和/或 _maximum_ 资源。
+资源限制是递归检查的。
+叶队列的使用量是为该队列分配的所有资源的总和。
+父队列的使用量是父队列下方所有队列、叶子和父级的使用量之和。
 
-The root queue, when defined, cannot have any resource limit set.
-If the root queue has any limit set a parsing error will occur.
-The maximum resource limit for the root queue is automatically equivalent to the cluster size.
-There is no guaranteed resource setting for the root queue.
+根队列在定义时不能设置任何资源限制。
+如果根队列设置了任何限制，则会发生解析错误。
+根队列的最大资源限制自动等于集群大小。
+根队列没有 guaranteed 资源设置。
 
-Maximum resources when configured place a hard limit on the size of all allocations that can be assigned to a queue at any point in time.
-A maximum resource can be set to 0 which makes the resource not available to the queue.
-Guaranteed resources are used in calculating the share of the queue and during allocation. 
-It is used as one of the inputs for deciding which queue to give the allocation to.
-Preemption uses the _guaranteed_ resource of a queue as a base which a queue cannot go below.
+配置的最大资源对可以在任何时间点分配给队列的所有分配的大小进行硬限制。
+最大资源可以设置为0，这使得该资源不可用于队列。
+guaranteed 资源在计算队列份额时和分配期间使用。
+它被用作决定将分配给哪个队列的输入之一。
+抢占会使用队列的 _guaranteed_ 资源作为队列不能低于限额的基本配置。
 
-Basic `resources` yaml entry:
+基础的 `resources` yaml 内容：
 ```yaml
 resources:
   guaranteed:
-    <resource name 1>: <0..maxint>
-    <resource name 2>: <0..maxint>
+    <资源名称 1>: <0..maxint>
+    <资源名称 2>: <0..maxint>
   max:
-    <resource name 1>: <0..maxint>
-    <resource name 2>: <0..maxint>
+    <资源名称 1>: <0..maxint>
+    <资源名称 2>: <0..maxint>
 ```
-Resources that are not specified in the list are not limited, for max resources, or guaranteed in the case of guaranteed resources. 
+对于最大资源，列表中未指定的资源不受限制，对于保障资源，也不会受保障。
 
-### Child Template
+### 子模板
 
-The parent queue can provide a template to define the behaviour of dynamic leaf queues below it. A parent queue having no child template inherits the child template
-from its parent if that parent has one defined. A child template can be defined at any level in the queue hierarchy on a queue that is of the type parent.
+父队列可以提供一个模板来定义它下面的动态叶子队列的行为。
+如果父队列已定义，则没有子模板的父队列从其父队列继承子模板。可以在父类型队列的队列层次结构中的任何级别定义子模板。
 
-The supported configuration in template are shown below.
-1. application sort policy
-2. max resources
-3. guaranteed resources
-4. max applications
+模板中支持的配置如下所示。
+1. 应用排序策略
+2. 最大资源
+3. 保障资源
+4. 最大应用数目
 
-As an example:
+举个例子：
 ```yaml
  partitions:
    - name: default
@@ -350,8 +348,7 @@ As an example:
            - name: notemplate
              parent: true
 ```
-In this case, `root.parent.sales` will directly use the child template of parent queue `root.parent`. By contrast,
-`root.notemplate.sales` will use the child template set on the queue `root` since its parent queue `root.notemplate` inherits the child template from the queue `root`.
+在这种情况下，`root.parent.sales` 将直接使用父队列 `root.parent` 的子模板。
+相比之下，`root.notemplate.sales` 将使用在队列 `root` 上设置的子模板，因为它的父队列 `root.notemplate` 从队列 `root` 继承了子模板。
 
-[DEPRECATED] Please migrate to template if your cluster is relying on old behavior that dynamic leaf queue can inherit
-`application.sort.policy` from parent (introduced by [YUNIKORN-195](https://issues.apache.org/jira/browse/YUNIKORN-195)). The old behavior will get removed in the future release.
+[已弃用] 如果您的集群依赖于动态叶队列可以从父级继承 `application.sort.policy` 的旧行为，请迁移到模板（由 [YUNIKORN-195](https://issues.apache.org/jira/browse/YUNIKORN-195) 引入)。旧的行为将在未来版本中删除。
