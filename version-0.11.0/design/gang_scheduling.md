@@ -188,7 +188,7 @@ Queue sorting for the queue that the application runs in must be set to _FIFO_ o
 这提供了许多问题，特别是在长时间运行部署中的内存使用和队列清理的情况下。
 
 ### 定义
-由于我们不能依赖在 Kubernetes 上作为 Pod 运行的应用程序来表明它已经完成，因此我们需要定义何时考虑应用一个程序的 _完成_ 。
+由于我们不能依赖在 Kubernetes 上作为 Pod 运行的应用程序来表明它已经完成，因此我们需要定义何时考虑一个应用程序的 _完成_ 。
 在这一点上，我们定义了一个应用程序在定义的时间段内处于 _等待_ 状态时，它会变成 _完成_ 。
 当没有活动分配（已分配资源 > 0）和挂起分配请求（挂起资源 > 0）时，应用程序进入等待状态。
 
@@ -242,7 +242,7 @@ _waiting_ 状态的超时是一项新的功能。
 
 进入 _killed_ 状态必须自动将应用程序移出队列。
 
-状态更改和占位分配释放可以在单个 UpdateResponse 消息中处理。 该消息将包含以下内容：
+状态更改和占位分配释放可以在单个更新响应消息中处理。 该消息将包含以下内容：
 * _UpdatedApplication_ 用于应用程序的状态变化
 * 一个或多个 _AllocationRelease_ 消息，每个占位一个，_TerminationType_ 设置为 TIMEOUT
 * 一条或多条 _TerminationType_ 设置为 TIMEOUT 的 AllocationAskRelease 消息
@@ -251,71 +251,73 @@ shim 首先处理 AllocationAskRelease 消息，然后是 _AllocationResponse_ �
 
 ![占位超时](./../assets/gang_timeout.png)
 
-Combined flow for the shim and core during timeout of placeholder:
-*   The core times out the placeholder allocation. (1)
-*   The placeholder Allocations removal is passed to the shim. (2)
-*   All placeholder Allocations are released by the shim, and communicated back to the core.
-*   The placeholder AllocationAsks removal is passed to the shim. (3)
-*   All placeholder AllocationAsks are released by the shim, and communicated back to the core.
-*   After the placeholder Allocations and Asks are released the core moves the application to the killed state removing it from the queue (4).
-*   The state change is finalised in the core and shim. (5)
+占位超时期间 shim 和核心的组合流程：
+*   核心超时占位分配。 (1)
+*   删除占位分配被传递到 shim。 (2)
+*   所有占位分配都由 shim 释放，并传回核心。
+*   删除占位分配请求被传递给 shim。 (3)
+*   所有占位分配请求都由 shim 释放，并传回核心。
+*   在占位分配和请求被释放后，核心将应用程序移动到终止状态，将其从队列中移除 (4)。
+*   状态更改在核心和 shim 中完成。 (5) 
 
-Allocated placeholders:  
-Leftover placeholders need to be released by the core.
-The shim needs to be informed to remove them. This must be triggered on entry of the _completed_ state.
-After the placeholder release is requested by the core the state transition of the application can proceed.
-The core will process the _AllocationRelease_ messages for placeholder allocations that come back from the shim with the _TerminationType_ set to TIMEOUT as normal without triggering a state change.
 
-The state change and placeholder allocation releases can be handled in a single UpdateResponse message.
-The message will have the following content:
-*   _UpdatedApplication_ for the state change of the application
-*   zero or more _AllocationRelease_ messages, one for each placeholder, with the  _TerminationType_ set to TIMEOUT
+已分配的占位：
+剩余的占位需要由核心释放。
+需要通知 shim 将它们移除。这必须在进入 _完成_ 状态时触发。
+在核心请求释放占位之后，应用程序的状态转换可以继续。
+核心将处理从 shim 返回的占位分配的 _AllocationRelease_ 消息，并将 _TerminationType_ 设置为正常*超时*，而不会触发状态更改。
 
-The shim processes the _AllocationResponse_ messages first followed by the _UpdatedApplication_ message.
-The application state change to the _completed_ state on the core side is only dependent on the removal of all placeholders pods, not on a response to the _UpdatedApplication _message.
+状态更改和占位分配释放可以在单个更新响应消息中处理。
+该消息将包含以下内容：
+*   _UpdatedApplication_ 用于应用程序的状态变化
+*   零个或多个 _AllocationRelease_ 消息，每个占位一个，_TerminationType_ 设置为 *超时*
 
-Entering into the _completed_ state will move the application out of the queue automatically.
-This should also handle the case we discussed earlier around a possible delayed processing of requests from the shim as we can move back from _waiting_ to _running_ if needed.
-A _completed_ application should also not prevent the case that was discussed around cron like submissions using the same application ID for each invocation.
-A _completed_ application with the same application ID must not prevent the submission of a new application with the same ID.
+shim 首先处理 _AllocationResponse_ 消息，然后是 _UpdatedApplication_ 消息。
+应用程序状态在核心端更改为 _完成_ 状态仅依赖于所有占位 pod 的移除，而不依赖于对 _UpdatedApplication_ 消息的响应。
 
-![application cleanup flow](./../assets/gang_clean_up.png)
+进入 _完成_ 状态会自动将应用程序移出队列。
+这也应该处理我们之前讨论的可能延迟处理来自 shim 的请求的情况，因为我们可以在需要时从 _等待_ 移回 _执行中_ 。
+一个 _完成_ 的应用程序也不应该阻止围绕cron讨论的情况，例如每次调用使用相同的应用程序ID提交。
+具有相同申请ID的 _完成_ 申请不得阻止提交具有相同ID的新申请。 
 
-Combined flow for the shim and core during cleanup of an application:
-*   A pod is released at the Kubernetes layer. (1)
-*   The shim passes the release of the allocation on to the core. (2)
-*   The core transitions the application to a waiting state if no pending or active allocations. (3)
-*   The waiting state times out and triggers the cleanup. (4)
-*   The placeholder Allocations removal is passed to the shim. (5)
-*   All placeholder Allocations are released by the shim, and communicated back to the core.
-*   After all placeholders are released the core moves the application to the completed state removing it from the queue (6).
+![应用程序清理流程](./../assets/gang_clean_up.png)
+cation to the completed state removing it from the queue (6).
 *   The state change is finalised in the core and shim. (7)
+在清理应用程序期间 shim 和核心的组合流程：
+*   在 Kubernetes 层发布了一个 pod。 (1)
+*   shim 将分配释放传递给核心。 (2)
+*   如果没有挂起或活动的分配，核心会将应用程序转换为等待状态。 (3)
+*   等待状态超时并触发清理。 (4)
+*   删除占位符配被传递到 shim。 (5)
+*   所有占位分配都由 shim 释放，并传回核心。
+*   释放所有占位后，核心将应用程序移动到完成状态，将其从队列中删除 (6)。
+*   状态更改在核心和 shim 中完成。 (7) 
 
-## Application recovery
-During application recovery the placeholder pods are recovered as any other pod on a node.
-These pods are communicated to the core by the shim as part of the node as an existing allocation.
-Existing allocations do not have a corresponding _AllocationAsk_ in the core. The core generates an _AllocationAsk_ based on the recovered information.
+## 应用恢复
+在应用程序恢复期间，占位 Pod 与节点上的任何其他 Pod 一样被恢复。
+这些 pod 由 shim 作为节点现有分配的一部分传递到核心。
+现有的分配在核心中没有相应的 _分配请求_。 核心根据恢复的信息生成 _分配请求_ 。
 
-For gang scheduling the _AllocationAsk_ contains the _taskGroupName_ and _placeholder_ flag.
-During recovery that same information must be part of the _Allocation_ message.
-This is due to the fact that the same message is used in two directions, from the RM to the scheduler and vice versa means we need to update the message and its processing.
+对于联邦调度，_分配请求_ 包含 _任务组名称_ 和 _占位_ 标志。
+在恢复期间，相同的信息必须是 _分配_ 消息的一部分。
+这是因为在两个方向上使用相同的消息，从 RM 到调度器，反之亦然，这意味着我们需要更新消息及其处理。
 
-If the information is missing from the _Allocation_ message the recovered allocation will not be correctly tagged in the core.
-The recovered allocation will be seen as a regular allocation.
-This means it is skipped as part of the normal allocation cycle that replaces the placeholders.
+如果 _分配_ 消息中缺少信息，则恢复的分配将不会在核心中被正确标记。
+恢复的分配将被视为常规分配。
+这意味着它作为替换占位的正常分配周期的一部分被跳过。
 
-The logic change only requires that the recovery of existing allocations copies the fields from the interface message into the allocation object in the core.
+逻辑变化只需要现有分配的恢复将接口消息中的字段复制到内核中的分配对象中。
 
-## Interface changes
-Multiple changes are needed to the communication between the shim and the core to support the gang information needed.
+## 接口变化
+需要对 shim 和核心之间的通信进行多次更改，以支持所需的帮派信息。
 
-An application must provide the total size of the placeholder requests to prevent accepting an application that can never run.
+应用程序必须提供占位请求的总大小，以防止接受永远无法运行的应用程序。
 
-The current object that is sent from the shim to the core for allocation requests is defined in the AllocationAsk.
-The Allocation, as the result message passed back from the scheduler core does not change. For recovery, which uses the same Allocation message, from the shim to the core, however must contain the gang related fields.
-Gang related fields must be added to both messages.
+从 shim 发送到核心以进行分配请求的当前对象在 AllocationAsk 中定义。
+由于从调度器核心传回的结果消息不会更改，因此分配不会更改。。但是，对于使用相同分配消息从 shim 到核心的恢复，必须包含与帮派相关的字段。
+必须将与帮派相关的字段添加到这两个消息中。
 
-The allocation release request and response request need to support bidirectional traffic and will need to undergo major changes.
+分配释放请求和响应请求需要支持双向通信，并且需要进行重大更改。
 
 ### AddApplication
 The AddApplicationRequest message requires a new field to communicate the total placeholder resource request that will be requested.
