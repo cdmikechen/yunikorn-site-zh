@@ -1,6 +1,6 @@
 ---
 id: queue_config
-title: Partition and Queue Configuration
+title: 分区和队列配置
 ---
 
 <!--
@@ -22,113 +22,115 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-The basis for the queue configuration is given in the [configuration design document](design/scheduler_configuration.md).
+队列配置的基础在 [配置设计文档](design/scheduler_configuration.md) 中给出。
 
-This document provides the generic queue configuration.
-It references both the [Access Control Lists](user_guide/acls.md) and [Placement rules](user_guide/placement_rules.md) documentation.
+本文档提供了通用队列配置。
+它引用了 [访问控制列表](user_guide/acls.md) 和 [放置规则](user_guide/placement_rules.md) 文档。
 
-This document explains how to create the partition and queue configuration for the scheduler with examples.
+本文档通过示例说明了如何为调度器创建分区和队列配置。
 
-The scheduler relies on the shim to reliably provide user information as part of the application submission.
-The current shim identifies the user and the groups the user belongs to using the methodology provided in [User & Group Resolution](usergroup_resolution) 
+作为应用程序提交的一部分，调度器依赖于 shim 来可靠地提供用户信息。
+当前 shim 使用 [用户和组解析](usergroup_resolution) 中提供的方法识别用户和用户所属的组。
 
-## Configuration
-The configuration file for the scheduler that is described here only provides the configuration for the partitions and queues.
+## 配置
+这里描述的调度器的配置文件只提供了分区和队列的配置。
 
-By default we use the file called `queues.yaml` in our deployments.
-The filename can be changed via the command line flag `policyGroup` of the scheduler.
-Changing the filename must be followed by corresponding changes in the deployment details, either the `configmap` or the file included in the docker container.
+默认情况下，我们在部署中使用名为 `queues.yaml` 的文件。
+可以通过调度器的命令行标志 `policyGroup` 更改文件名。
+更改文件名后必须在 deployment 详细信息中进行相应的更改，无论是 `configmap` 还是包含在 docker 容器中的文件。
 
-The example file for the configuration is located in the scheduler core's [queues.yaml](https://github.com/apache/incubator-yunikorn-core/blob/master/config/queues.yaml).  
+配置的示例文件位于调度器核心内 [queues.yaml](https://github.com/apache/incubator-yunikorn-core/blob/master/config/queues.yaml)。
 
-## Partitions
-Partitions are the top level of the scheduler configuration.
-There can be more than one partition defined in the configuration.
+## 分区
+分区是调度器配置的顶层。
+配置中可以定义多个分区。
 
-Basic structure for the partition definition in the configuration:
+配置中分区定义的基本结构：
 ```yaml
 partitions:
   - name: <name of the 1st partition>
   - name: <name of the 2nd partition>
 ```
-The default name for the partition is `default`.
-The partition definition contains the full configuration for the scheduler for a particular shim.
-Each shim uses its own unique partition.
+分区的默认名称是 `default`。
+分区定义包含特定 shim 的调度程器的完整配置。
+每个 shim 使用自己唯一的分区。
 
-The partition must have at least the following keys defined:
-* name
-* [queues](#queues)
+分区必须至少定义以下键：
+* 名称
+* [队列](#queues)
 
-The queues configuration is explained below.
+队列配置释义如下。
 
-Optionally the following keys can be defined for a partition:
-* [placementrules](#placement-rules)
-* [limits](#limits)
-* nodesortpolicy
-* preemption
+可以选择为分区定义以下键：
+* [布置规则](#placement-rules)
+* [限制](#limits)
+* 节点排序策略
+* 抢占
 
-Placement rules and limits are explained in their own chapters
+布置规则和限制在它们自己的章节中进行了详解
 
-The `nodesortpolicy` defines the way the nodes are sorted for the partition.
-Details on the values that can be used are in the [sorting policy](sorting_policies.md#node-sorting) documentation.
+`nodesortpolicy` 定义了节点为分区排序的方式。
+可以使用的值的详细信息在 [排序策略](sorting_policies.md#node-sorting) 文档中可以参考。
 
-The preemption key can currently have only one sub key: _enabled_.
-This boolean value defines the preemption behaviour for the whole partition.
+抢占键目前只能有一个子键：_enabled_ 。
+这个布尔值定义了整个分区的抢占行为。
 
-The default value for _enabled_ is _false_.
-Allowed values: _true_ or _false_, any other value will cause a parse error.
+_enabled_ 的默认值为 _false_ 。
+允许值：_true_ 或 _false_ ，任何其他值都会导致解析错误。
 
-Example `partition` yaml entry with _preemption_ flag set and a `nodesortpolicy` of _fair_:
+设置了 _preemption_ 标志和 `nodesortpolicy` 为 _fair_ 的示例 `partition` yaml 描述：
 ```yaml
 partitions:
-  - name: <name of the partition>
+  - name: <分区名称>
     nodesortpolicy: fair
     preemption:
       enabled: true
 ```
-NOTE:
-Currently the Kubernetes unique shim does not support any other partition than the `default` partition..
-This has been logged as an [jira](https://issues.apache.org/jira/browse/YUNIKORN-22) for the shim.
+注意:
+目前，Kubernetes 唯一的 shim 不支持除 `default` 分区之外的任何其他分区。
+这已为 shim 在 [jira](https://issues.apache.org/jira/browse/YUNIKORN-22) 上进行了记录。
 
-### Queues
+### 队列
 
-YuniKorn manages resources by leveraging resource queues. The resource queue has the following characters:
-- queues can have **hierarchical** structure
-- each queue can be preset with **min/max capacity** where min-capacity defines the guaranteed resource and the max-capacity defines the resource limit (aka resource quota)
-- tasks must be running under a certain leaf queue
-- queues can be **static** (loading from configuration file) or **dynamical** (internally managed by YuniKorn)
-- queue level **resource fairness is** enforced by the scheduler
-- a job can only run under a specific queue
+YuniKorn 通过利用资源队列来管理资源。资源队列具有以下特征：
+- 队列可以有 **等级制的** 结构
+- 每个队列都可以预设 **最小/最大容量** ，其中最小容量定义了保证资源，最大容量定义了资源限制（又名资源配额）
+- 任务必须在某个子队列下运行
+- 队列可以是 **静态的**（从配置文件加载）或 **动态的**（由 YuniKorn 内部管理）
+- 队列级别 **资源公平** 由调度器强制执行
+- 作业只能在特定队列下运行
 
 :::info
-The difference between YuniKorn queue and [Kubernetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/):
-Kubernetes namespace provides the scope for the Kubernetes resources, including the security context (i.e who can access the objects), and resource
-boundary when [resource quota](https://kubernetes.io/docs/concepts/policy/resource-quotas/) is defined (i.e how many resources can be used by the objects).
-On the other hand, YuniKorn queue is only used how many resources can be used by a group of jobs, and in which order. It provides
-a more fine-grained control on resource sharing across multiple tenants with considering of resource fairness, job ordering, etc. In most of the cases,
-YuniKorn queue can be used to replace the namespace resource quota, in order to provide more scheduling features.
+YuniKorn 队列与 [Kubernetes 命名空间](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) 的区别：
+Kubernetes 命名空间提供了 Kubernetes 资源的范围，包括安全上下文（即谁可以访问对象）和当 [资源配额](https://kubernetes.io/docs/concepts/policy/resource-quotas/) 被定义（即对象可以使用多少资源）时的资源边界。
+另一方面，YuniKorn 队列仅用于一组作业可以使用多少资源，以及按什么顺序使用。考虑到资源公平性、作业排序等，它对跨租户的资源共享会提供更细粒度的控制。在大多数情况下，YuniKorn 队列可以用来代替命名空间资源配额，以提供更多的调度功能 .
 :::
 
-The _queues_ entry is the main configuration element. 
-It defines a hierarchical structure for the queues.
+_queues_ 内容是主要的配置元素。
+它定义了队列的层次结构。
 
 It can have a `root` queue defined but it is not a required element.
 If the `root` queue is not defined the configuration parsing will insert the root queue for consistency.
 The insertion of the root queue is triggered by:
 * If the configuration has more than one queue defined at the top level a root queue is inserted.
 * If there is only one queue defined at the top level and it is not called `root` a root queue is inserted.  
+我们可以定义一个 `root` 队列，但它不是必需的元素。
+如果没有定义 `root` 队列，配置解析将插入根队列以保持一致性。
+根队列的插入由以下情况触发：
+* 如果配置在顶层定义了多个队列，一个根队列会被插入。
+* 如果在顶层只定义了一个队列并且它不被称为 `root`，一个根队列会被插入。
 
-The defined queue or queues will become a child queue of the inserted `root` queue.
+定义的队列将成为插入的 `root` 队列的子队列。
 
-Basic `queues` yaml entry with sub queue:
+带有子队列的基本 `queues` yaml 内容：
 ```yaml
 queues:
-- name: <name of the queue>
+- name: <队列名>
   queues:
-  - name: <name of the queue>
+  - name: <队列名>
 ```
 
-Supported parameters for the queues:
+队列支持的参数：
 * name
 * parent
 * queues
@@ -138,41 +140,43 @@ Supported parameters for the queues:
 * [resources](#resources)
 * [limits](#limits)
 
-Each queue must have a _name_.
-The name of a queue must be unique at the level that the queue is defined.
-Since the queue structure is fully hierarchical queues at different points in the hierarchy may have the same name.
-As an example: the queue structure `root.testqueue` and `root.parent.testqueue` is a valid structure.
-A queue cannot contain a dot "." character as that character is used to separate the queues in the hierarchy.
-If the name is not unique for the queue in the configuration or contains a dot a parsing error is generated and the configuration is rejected. 
+每个队列都必须有一个 _名称_。
+队列的名称在定义队列的级别上必须是唯一的。
+由于队列结构是完全分层的，层次结构中不同点的队列可能具有相同的名称。
+例如：队列结构 `root.testqueue` 和 `root.parent.testqueue` 是一个有效的结构。
+队列不能包含点 “.” 字符，因为该字符用于分隔层次结构中的队列。
+如果配置中队列的名称不是唯一的或包含点，则会生成解析错误并拒绝配置。
 
-Queues in the structure will automatically get a type assigned.
-The type of the queue is based on the fact that the queue has children or sub queues.
-The two types of queues are:
+* parent
+* leaf
+在结构中的队列将自动获得分配的类型。
+队列的类型基于队列具有子队列或次级队列的这个事实。
+队列的两个类型是：
 * parent
 * leaf
 
-Applications can only be assigned to a _leaf_ queue.
-A queue that has a child or sub queue in the configuration is automatically a _parent_ queue.
-If a queue does not have a sub the queue in the configuration it is a _leaf_ queue, unless the `parent` parameter is set to _true_.
-Trying to override a _parent_ queue type in the configuration will cause a parsing error of the configuration.   
+应用程序只能分配到 _leaf_ 队列。
+在配置中具有子队列或次级队列的队列自动成为 _parent_ 队列。
+如果队列在配置中没有子队列，则它是 _leaf_ 队列，除非 `parent` 参数设置为 _true_。
+尝试覆盖配置中的 _parent_ 队列类型会导致配置解析错误。
 
-Sub queues for a parent queue are defined under the `queues` entry.
-The `queues` entry is a recursive entry for a queue level and uses the exact same set of parameters.  
+父队列的次级队列在 `queues` 层级下定义。
+`queues` 层级是队列级别的递归条目，并使用完全相同的参数集。
 
-The `properties` parameter is a simple key value pair list. 
-The list provides a simple set of properties for the queue.
-There are no limitations on the key or value values, anything is allowed.
-Currently, the property list is only used in the scheduler to define a [sorting order](sorting_policies.md#application-sorting) for a leaf queue.
-Future expansions, like the option to turn on or off preemption on a queue or other sorting policies, would use this same property construct without the need to change the configuration.
+`properties` 参数是一个简单的键值对列表。
+该列表为队列提供了一组简单的参数属性。
+键或值的值没有限制，任何配置都是允许的。
+目前，属性列表仅用于调度器中，用于为 leaf 队列定义 [排序顺序](sorting_policies.md#application-sorting)。
+未来的扩展，比如在队列或其他排序策略上打开或关闭抢占的选项，将使用相同的属性构造，而无需更改配置。
 
-Access to a queue is set via the `adminacl` for administrative actions and for submitting an application via the `submitacl` entry.
-ACLs are documented in the [Access control lists](acls.md) document.
+对队列的访问是通过 `adminacl` 设置的，用于管理操作和通过 `submitacl` 条目提交申请。
+ACL 记录在 [访问控制列表](acls.md) 文档中。
 
-Queue resource limits are set via the `resources` parameter.
-User and group limits are set via the `limits` parameter.
-As both entries are complex configuration entries they are explained in [resources](#resources) and [limits](#limits) below.
+队列资源限制是通过 `resources` 参数设置的。
+用户和组限制是通过 `limits` 参数设置的。
+由于这两个条目都是复杂的配置条目，它们在下面的 [资源](#resources) 和 [限制](#limits) 中进行了说明。
 
-An example configuration of a queue `root.namespaces` as a _parent_ queue with limits:
+下面列举一个具有限制的 _parent_ 队列 `root.namespaces` 的示例配置：
 ```yaml
 partitions:
   - name: default
@@ -186,7 +190,7 @@ partitions:
             {memory: 10000, vcore: 100}
 ```
 
-### Placement rules
+### 放置规则
 
 The placement rules are defined and documented in the [placement rule](placement_rules.md) document.
 
