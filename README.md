@@ -4,4 +4,4 @@
 
 文档原文地址：https://github.com/apache/incubator-yunikorn-site
 
-当前基于0.12.0版本（commit 12d9eeca8df28246362b597994c1db48134a2d0d）进行汉化。
+当前基于0.12.1版本（commit 0e931c108b8d986cbac6d7bfeefc9820415f7a5a）进行汉化。
