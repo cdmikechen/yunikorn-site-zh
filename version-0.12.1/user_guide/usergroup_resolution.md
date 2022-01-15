@@ -38,7 +38,7 @@ metadata:
   labels:
     yunikorn.apache.org/username: "john"
 ```
-:::tip
+:::tip 贴士
 为了使授权用户能够唯一地识别此字段，建议通过集群管理员使用的用户识别工具将此标签添加为不可变字段。集群管理员或用户可以自由使用任何方法或工具来添加该字段和值。这包括在提交时手动添加的情况。
 :::
 
@@ -60,8 +60,6 @@ env:
 组成员身份解析是可插拔的，并在此处定义。组不必是提供的用户和组对象的一部分。当对象添加到缓存中时，组会根据解析配置自动进行解析。
 我们可以为每个分区设置链接到缓存的解析器。
 
-The default group resolver is "no resolver".
-This resolver just echos the user name and a primary group with the same name as the user.
 默认组解析器是“无解析器”。
 此解析器仅显示用户名和与用户同名的主要组。
 

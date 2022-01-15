@@ -94,7 +94,7 @@ Setting a default of one (1) does not give us much enhancement to what we curren
 It makes the sorting policy an opt-out but does not give the cluster administrator any control over the scheduling behaviour.
 Weighing those against each other the proposal is to not make this configurable.
 
-### Example run
+### 示例运行
 Using Spark applications as an example: a new application can only be scheduled if the previous application has at least one (1) executor allocated.
 
 ![images](./../assets/fifo-state-example.png)
