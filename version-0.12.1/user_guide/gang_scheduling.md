@@ -214,7 +214,7 @@ Annotations:
 Once the job is submitted to the scheduler, the job won’t be scheduled immediately.
 Instead, the scheduler will ensure it gets its minimal resources before actually starting the driver/executors. 
 
-## Gang scheduling Styles
+## 帮派调度形式
 
 There are 2 gang scheduling styles supported, Soft and Hard respectively. It can be configured per app-level to define how the app will behave in case the gang scheduling fails.
 
