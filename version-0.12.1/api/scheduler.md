@@ -1,6 +1,6 @@
 ---
 id: scheduler
-title: 调度
+title: 调度器
 ---
 
 <!--
@@ -119,7 +119,6 @@ under the License.
 
 **样例内容**
 
-For the default queue hierarchy (only `root.default` leaf queue exists) a similar response to the following is sent back to the client:
 对于默认队列层次结构（只有在 `root.default` leaf队列存在的时候），对以下内容的类似响应将发送回客户端：
 
 ```json
@@ -1176,7 +1175,7 @@ checksum: BAB3D76402827EABE62FA7E4C6BCF4D8DD9552834561B6B660EF37FED9299791
 
 ## 健康检查请求
 
-用于检索有关关键日志、节点/群集/应用程序上的负资源的历史数据的请求...
+用于检索有关关键日志、节点/集群/应用程序上的负资源的历史数据的请求...
 
 **URL** : `/ws/v1/scheduler/healthcheck`
 
@@ -1285,9 +1284,9 @@ checksum: BAB3D76402827EABE62FA7E4C6BCF4D8DD9552834561B6B660EF37FED9299791
 
 **返回代码**: `500 Internal Server Error`
 
-## 启用或禁用定期状态转储到运行 Yunikorn 的容器内的外部文件
+## 启用或禁用定期状态转储到运行 YuniKorn 的容器内的外部文件
 
-允许定期写入状态转储的Endpoint。默认情况下，它是 60 秒。输出到一个名为 `yunikorn-state.txt` 的文件中。在当前版本中，该文件位于 Yunikorn 当前工作目录中，不可配置。
+允许定期写入状态转储的Endpoint。默认情况下，它是 60 秒。输出到一个名为 `yunikorn-state.txt` 的文件中。在当前版本中，该文件位于 YuniKorn 当前工作目录中，不可配置。
 
 尝试连续多次启用或禁用此功能会导致错误。
 

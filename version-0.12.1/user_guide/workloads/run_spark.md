@@ -25,7 +25,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-:::注意
+:::note 注意
 本文档假设您已安装YuniKorn及其准入控制器。请参阅 [开始](../../get_started/get_started.md) 查看如何操作。
 :::
 
@@ -122,7 +122,6 @@ ${SPARK_HOME}/bin/spark-submit --master k8s://http://localhost:8001 --deploy-mod
 
 ![spark-pods](./../../assets/spark-pods.png)
 
-You can also view the job info from YuniKorn UI. If you do not know how to access the YuniKorn UI, please read the document
 您还可以从 YuniKorn UI 查看作业信息。如果您不知道如何访问 YuniKorn UI，请阅读文档
 [链接](../../get_started/get_started.md#access-the-web-ui).
 
@@ -141,6 +140,6 @@ You can also view the job info from YuniKorn UI. If you do not know how to acces
 注意，这是最简单的设置，不强制执行队列容量。该队列被视为具有无限容量。
 
 YuniKor在标签 `spark-app-selector` 中重复设置Spark的应用程序ID，并提交此作业去YuniKorn，同时被视为一份作业。
-当群集中有足够的资源时，作业被调度并运行。
+当集群中有足够的资源时，作业被调度并运行。
 YuniKorn将driver的pod分配给一个节点，绑定pod并启动所有容器。
 一旦driver的pod启动，它会请求一堆executor的pod来运行它的任务。这些pod也将在相同的名称空间中创建，并且被YuniKorn所调度。

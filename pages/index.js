@@ -56,7 +56,7 @@ const features = [
     description: (
       <>
       支持本地和云端用例。 
-      在云上运行时，它与自动缩放一起使用，以带来最大的资源弹性和更好的吞吐量。
+      在云上运行时，它与自动缩放共同协作，以带来最大的资源弹性和更好的吞吐量。
       </>
     ),
   },
@@ -77,9 +77,9 @@ function Home() {
                         <p className="hero__subtitle">释放在 Kubernetes 上运行大数据和机器学习资源调度的力量！</p>
                         <div className="container">
                             <div className="buttons_src-pages-">
-                                <a className="button button--primary button--lg" href="/docs/">GET STARTED</a>
-                                <a className="button button--primary button--lg" href="/community/download">DOWNLOAD</a>
-                                <a className="button button--primary button--lg" href="/community/roadmap">ROADMAP</a>
+                                <a className="button button--primary button--lg" href="/docs/">开始文档</a>
+                                <a className="button button--primary button--lg" href="/community/download">下载</a>
+                                <a className="button button--primary button--lg" href="/community/roadmap">路线图</a>
                             </div>
                         </div>
                     </div>
@@ -112,7 +112,7 @@ function Home() {
 
             <section className="features_src-pages-">
                 <div className="container">
-                    <h1 className="text--center">☺ 为什么是YUNIKORN?</h1>
+                    <h1 className="text--center">☺ 为什么选YUNIKORN?</h1>
                     {/*<img src="img/why-dark.png" className={styles.timelineImage}/>*/}
                     <ImageSwitcher darkImageSrc={"./img/why-dark.png"} lightImageSrc={"./img/why.png"} />
                 </div>

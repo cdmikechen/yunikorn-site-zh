@@ -38,13 +38,13 @@ metadata:
   labels:
     yunikorn.apache.org/username: "john"
 ```
-:::tip 贴士
+:::tip
 为了使授权用户能够唯一地识别此字段，建议通过集群管理员使用的用户识别工具将此标签添加为不可变字段。集群管理员或用户可以自由使用任何方法或工具来添加该字段和值。这包括在提交时手动添加的情况。
 :::
 
 :::note 假设 
 假设:
-  Yunikorn 假设属于一个应用程序的所有 pod 都归同一个用户所有。我们建议将用户标签添加到应用程序的每个 pod。这是为了确保没有差异。
+  YuniKorn 假设属于一个应用程序的所有 pod 都归同一个用户所有。我们建议将用户标签添加到应用程序的每个 pod。这是为了确保没有差异。
 :::
 
 `yunikorn.apache.org/username` 键可以通过使用 `USER_LABEL_KEY` 环境变量覆盖默认值来在 [K8s](https://github.com/apache/incubator-yunikorn-release/blob/master/helm-charts/yunikorn/templates/deployment.yaml) 来进行自定义。这在已经添加了用户标签或出于某些安全原因必须修改标签的情况下特别有用。

@@ -30,7 +30,7 @@ A resource manager shim, and the core can thus have an independent idea of the s
 State change are triggered by events that get processed.
 One event can cause a change for multiple states or no change at all.
 
-### 应用状态
+### Application State 
 Applications have a complex state model.
 An application when created starts ain the new state.
 
