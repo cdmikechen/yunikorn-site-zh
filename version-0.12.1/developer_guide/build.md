@@ -33,7 +33,7 @@ Read the [environment setup guide](developer_guide/env_setup.md) first to setup 
 ## Build YuniKorn for Kubernetes
 
 Prerequisite:
-- Go 1.12+
+- Go 1.16+
 
 You can build the scheduler for Kubernetes from [yunikorn-k8shim](https://github.com/apache/incubator-yunikorn-k8shim) project.
 The build procedure will build all components into a single executable that can be deployed and running on Kubernetes.
@@ -172,13 +172,19 @@ make run
 ```
 It will connect with the kubernetes cluster using the users configured configuration located in `$HOME/.kube/config`.
 
+To run YuniKorn in Kubernetes scheduler plugin mode instead, execute:
+
+```
+make run_plugin
+```
+
 You can also use the same approach to run the scheduler locally but connecting to a remote kubernetes cluster,
 as long as the `$HOME/.kube/config` file is pointing to that remote cluster.
 
 
 ## Verify external interface changes with e2e tests
 
-YuniKorn has an external REST interface which is validated by end-to-end tests. However, the tests exist in the k8shim repository.
+Yunikorn has an external REST interface which is validated by end-to-end tests. However, the tests exist in the k8shim repository.
 Whenever a change is made to the external interface, make sure that it is validated by running e2e tests or adjust the test cases accordingly.
 
 How to run the tests locally is described [here](https://github.com/apache/incubator-yunikorn-k8shim/blob/master/test/e2e/README.md).
