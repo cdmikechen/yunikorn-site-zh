@@ -63,6 +63,7 @@ partitions:
 
 可以选择为分区定义以下键：
 * [布置规则](#placement-rules)
+* [statedumpfilepath](#statedump-filepath)
 * [限制](#limits)
 * 节点排序策略
 * 抢占
@@ -190,7 +191,22 @@ partitions:
 放置规则在 [放置规则](placement_rules.md) 文档中定义和记录。
 
 每个分区只能定义一组放置规则。
-如果没有定义规则，则不会启动放置管理器，并且每个应用程序 *必须* 在提交时设置一个队列。
+If no rules are defined the placement manager is not started and each application *must* have a queue set on submit.
+
+### Statedump filepath
+
+The statedump filepath defines the output file for YuniKorn statedumps. It is optionally set on the partition level. If set,
+the value of this field can be either a relative (to working directory) or absolute path. YuniKorn scheduler will be unable
+to start if it does not have sufficient permissions to create the statedump file at the specified path.
+
+```yaml
+statedumpfilepath: <path/to/statedump/file>
+```
+If the above key is not specified in the partition config, its value will default to `yunikorn-state.txt`. If the key is specified
+in multiple partitions, the value of its first occurrence will take precedence.
+
+The statedump file also has a fixed rotation policy. Currently, each statedump file has a capacity of 10MB and there can be a maximum
+of 10 such files. The statedump file currently being written to will always be the configured value above or default `yunikorn-state.txt`. When the file size limit is reached, the log rotator (`lumberjack`) will modify the file by prefixing it with a timestamp and create a new file with the same non-prefixed name to write statedumps to. If the maximum number of statedump files are reached, the oldest file timestamped as per the rotation policy will be deleted.
 
 ### 限制
 限制为分区或队列定义了一组限制对象。
