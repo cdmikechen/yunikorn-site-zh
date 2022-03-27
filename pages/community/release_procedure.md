@@ -1,6 +1,6 @@
 ---
 id: release_procedure
-title: Release Procedure
+title: 发布程序
 ---
 
 <!--
@@ -20,255 +20,253 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# YuniKorn Release Procedure
+# YuniKorn 发布程序
 
-The [release repository](https://github.com/apache/incubator-yunikorn-release) contains the code and configuration to create a release for Apache YuniKorn (Incubating).
-Before starting the release procedure clone the repository and checkout the master branch.
-Even if a release has been made before make sure that the latest version is checked out as the code and or config might have changed.  
+[发布存储库](https://github.com/apache/yunikorn-release) 包含了 Apache YuniKorn 创建 release（下文统称为发布）的代码和配置。
+我们需要在开始发布过程之前克隆存储库并签出主分支。
+即使之前已经发布过该版本，也请确保签出最新的发布内容，因为代码和/或配置可能已更改。
 
-The instructions and tools obey the ASF [release policy](http://www.apache.org/legal/release-policy.html), and [Podling Release Policy](https://incubator.apache.org/policy/incubation.html#releases).
+相关说明和工具会遵守ASF的[发布政策](http://www.apache.org/legal/release-policy.html)。
 
-* [Create a Release](#create-a-release)
-    * [Tag and update release for version](#tag-and-update-release-for-version)
-    * [Update the CHANGELOG](#update-the-changelog)
-    * [Run the release tool](#run-the-release-tool)
-        * [Create Signature](#create-signature)
-        * [Create Checksum](#create-checksum)
-    * [Upload Release Candidate Artefacts](#upload-release-candidate-artefacts)
-    * [Start Voting Thread](#start-voting-thread)
-    * [Publish the Release](#publish-the-release)
-        * [Release Docker images](#release-docker-images)
-        * [Release Helm Charts](#release-helm-charts)
-        * [Update the website](#update-the-website)
-        * [Create the GIT releases](#create-the-git-releases)
-    * [Verify the release](#verify-the-release)
-* [Signing your first release](#signing-your-first-release)
-    * [Generate a Key](#generate-a-key)
-    * [Add the signature to the project KEYS file](#add-the-signature-to-the-project-keys-file)
+* [创建一个发布](#创建一个发布)
+    * [打标签并更新发布版本](#打标签并更新发布版本)
+    * [更新修改日志](#更新修改日志)
+    * [运行发布工具](#运行发布工具)
+        * [创建签名](#创建签名)
+        * [创建Checksum](#创建checksum)
+    * [上传候选发布artifact](#上传候选发布artifact)
+    * [开始投票流程](#开始投票流程)
+    * [发布](#发布)
+        * [发布Docker镜像](#发布docker镜像)
+        * [发布 Helm Charts](#发布-helm-charts)
+        * [更新网站](#更新网站)
+        * [清理](#清理)
+        * [创建GIT发布](#创建git发布)
+    * [验证发布](#验证发布)
+* [签名您的第一个发布](#签名您的第一个发布)
+    * [生成密钥](#生成密钥)
+    * [将签名添加到项目KEYS文件中](#将签名添加到项目keys文件中)
 
-## Create a Release
-Simplified release procedure: 
-1. Create a release branch for the target release in all git repos, such as `branch-0.8`
-2. Stabilize the release by fixing test failures and bugs only
-3. Tag update release for a new version to prepare a release candidate, e.g `v0.8.0`
-4. Update the CHANGELOG
-5. Configure [release-configs.json](https://github.com/apache/incubator-yunikorn-release/tree/master/tools/release-configs.json)
-6. Run script [build-release.py](https://github.com/apache/incubator-yunikorn-release/tree/master/tools/build-release.py) to generate source code tarball, checksum and signature.
-7. Voting and releasing the candidate
+## 创建一个发布
+简化的发布程序：
+1. 在所有git存储库中为目标发布版本创建一个发布分支，比如 `branch-0.8`
+2. 这个发布版本只能通过修复测试失败问题和错误来趋于稳定
+3. 给新版本的更新发布打标签，以作为准备发布的候选版本，例如 `v0.8.0`
+4. 更新 CHANGELOG (以后统称为修改日志)
+5. 配置[release-configs.json](https://github.com/apache/yunikorn-release/tree/master/tools/release-configs.json)
+6. 运行脚本[build-release.py](https://github.com/apache/yunikorn-release/tree/master/tools/build-release.py) 生成源代码压缩包、checksum 和签名。
+7. 投票和发布候选版本
 
-### Tag and update release for version
-Branching and tagging can, and in most cases will, require changes in the go mod files.
-Branching is part of the release preparation and often has happened some time before the release process starts. 
-A release needs to be tagged in git before starting the release process.
-As an example check [YUNIKORN-358](https://issues.apache.org/jira/browse/YUNIKORN-358).
-Release candidates and final release use the same tag which gets moved if a new release candidate is generated. 
+### 打标签并更新发布版本
+分支和标签需要——并且在大多数情况下——更改 go mod 文件。
+分支是发布准备的一部分，通常在发布过程开始之前的某个时间发生。
+在开始发布过程之前，需要在git中给发布内容打上标签。
+可以查看 [YUNIKORN-358](https://issues.apache.org/jira/browse/YUNIKORN-358)，它就是一个例子。
+候选发布和最终发布使用相同的标签，如果生成新的候选发布，该标签会被移动。
 
-The tagging is multi step process, all actions are done on the branch that will be released, like `branch-0.8`:
-1. Tag the web and scheduler interface with the release tag.
-2. Update the `go.mod` file in the core using `go get github.com/apache/incubator-yunikorn-scheduler-interface`  
-Add the tag and commit the changes.
-3. Update the `go.mod` file in the shim using `go get github.com/apache/incubator-yunikorn-scheduler-interface` and  
-`go get github.com/apache/incubator-yunikorn-core`. Add the tag and commit the changes.
-4. Create a new branch in the yunikorn-release repo, set the correct chart version in [Chart.yaml](https://github.com/apache/incubator-yunikorn-release/tree/master/helm-charts/yunikorn/Chart.yaml), and then create the tag.
+打标签是一个多步骤的过程，所有操作都需在将要发布的分支上完成，例如 `branch-0.8` ：
+1. 给 web 和 scheduler-interface 项目打上发布标签。
+2. 使用 `go get github.com/apache/yunikorn-scheduler-interface` 更新 core 项目中的 `go.mod` 文件，然后添加标签并提交更改。
+3. 使用 `go get github.com/apache/yunikorn-scheduler-interface` 和 `go get github.com/apache/yunikorn-core` 更新 shim 项目中的 `go.mod` 文件。之后再添加标签并提交更改。
+4. 在yunikorn发布的存储库中新建一个分支，在[Chart.yaml](https://github.com/apache/yunikorn-release/tree/master/helm-charts/yunikorn/Chart.yaml) 中设置正确的chart版本，然后创建标签。
 
-### Update the CHANGELOG
-In the release artifacts a [CHANGELOG](https://github.com/apache/incubator-yunikorn-release/tree/master/release-top-level-artifacts/CHANGELOG) is added for each release.
-The CHANGELOG should contain the list of jiras fixed in the release.
-Follow these steps to generate the list:
-- Go to the [releases page in jira](https://issues.apache.org/jira/projects/YUNIKORN?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased)
-- Click on the version that is about to be released, i.e. `0.8`
-- Click on the `Release Notes` link on the top of the page
-- Click the button `Configure Release Notes`
-- Select the style `Text` and click `create`
-- Scroll to the bottom of the page and copy the content of the text area and update the CHANGELOG file in the ../release-top-level-artifacts directory.
+### 更新修改日志
+我们为每个发行版中的artifact添加了一个[修改日志](https://github.com/apache/yunikorn-release/tree/master/release-top-level-artifacts/CHANGELOG)。
+修改日志应包含版本中修复的 jiras 列表。
+我们可以按照以下步骤生成列表：
+- 转到 [jira发布页面](https://issues.apache.org/jira/projects/YUNIKORN?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased)
+- 点击即将发布的版本，例如 `0.8`
+- 点击页面顶部的 `Release Notes`（发布说明） 链接
+- 单击 `Configure Release Notes`（配置发布说明）按钮
+- 选择样式 `Text` 并点击 `create`
+- 滚动到页面底部并复制文本区域的内容并更新 ../release-top-level-artifacts 目录中的修改日志文件。
 
-### Run the release tool
-A tool has been written to handle most of the release tasks.
-The tool requires a simple [json](https://github.com/apache/incubator-yunikorn-release/tree/master/tools/release-configs.json) input file to be updated before running.
-This configuration points to the current release tag. Only update the tag for each repository.
+### 运行发布工具
+我们已经编写了一个工具来处理大部分的发布任务。
+该工具需要在运行前更新一个简单的 [json](https://github.com/apache/yunikorn-release/tree/master/tools/release-configs.json) 输入文件。
+此配置指向当前的发布标签。它只会更新每个存储库的标签。
 
-The tool has one requirement outside of standard Python 3: [GitPython](https://gitpython.readthedocs.io/en/stable/intro.html)
-Make sure you have installed it by running `pip install gitpython`.
+该工具在标准的Python3之外有一项要求：[GitPython](https://gitpython.readthedocs.io/en/stable/intro.html)
+请确保您已通过运行 `pip install gitpython` 来安装它。
 
-Run the tool:
+运行工具:
 ```shell script
 python3 build-release.py
 ```
-If you want to automatically sign the release using your GPG key run the tool using:
+如果您想使用 GPG 密钥自动签署版本，请使用以下命令运行该工具：
 ```shell script
-python3 build-release.py --sign <email-address>
+python3 build-release.py --sign <邮件地址>
 ```
 
-#### Create Signature
-If you have GPG with a _pinentry_ program setup you can automatically sign the release using the release tool.
-On MacOSX this will be setup automatically if you use the keychain for the keys.
-For more details check the [GnuPG tools wiki](https://wiki.archlinux.org/index.php/GnuPG) and specifically the [pinentry](https://wiki.archlinux.org/index.php/GnuPG#pinentry) chapter.  
+#### 创建签名
+如果您有带有 _pinentry_ 程序设置的 GPG，您可以使用发布工具自动签署发布。
+在 MacOSX 上，如果您使用钥匙串作为秘钥，这将自动设置。
+有关更多的详情，请查看 [GnuPG 工具 wiki](https://wiki.archlinux.org/index.php/GnuPG)，特别是 [pinentry](https://wiki.archlinux.org/index.php/GnuPG#pinentry) 章节。
 
-Run the release tool using the option `--sign <email-address>` to auto sign the release.
+使用 `--sign <邮件地址>` 选项来运行发布工具以自动签署发布。
  
-Manually creating the signature for the file generated by the tool:
+为工具生成的文件手动创建签名：
 ```shell script
-gpg --local-user <email-address> --armor --output apache-yunikorn-0.8.0-incubating-src.tar.gz.asc --detach-sig apache-yunikorn-0.8.0-incubating-src.tar.gz
+gpg --local-user <邮件地址> --armor --output apache-yunikorn-0.8.0-src.tar.gz.asc --detach-sig apache-yunikorn-0.8.0-src.tar.gz
 ```
-This will create the signature in the file: `apache-yunikorn-0.8.0-incubating-src.tar.gz.asc`
-Verify that the signature is correct using:
+这将在文件中创建签名：`apache-yunikorn-0.8.0-src.tar.gz.asc`  
+使用以下命令验证签名是否正确：
 ```shell script
-gpg --verify apache-yunikorn-0.8.0-incubating-src.tar.gz.asc apache-yunikorn-0.8.0-incubating-src.tar.gz
-```
-
-#### Create Checksum
-This step is included in the release after generation of the source tar ball, if the release tool is used this step can be skipped. 
-```shell script
-shasum -a 512 apache-yunikorn-0.8.0-incubating-src.tar.gz > apache-yunikorn-0.8.0-incubating-src.tar.gz.sha512
-```
-This will create the checksum in the file: `apache-yunikorn-0.8.0-incubating-src.tar.gz.sha512`
-Verify that the checksum is correct using:
-```shell script
-shasum -a 512 -c apache-yunikorn-0.8.0-incubating-src.tar.gz.sha512 
+gpg --verify apache-yunikorn-0.8.0-src.tar.gz.asc apache-yunikorn-0.8.0-src.tar.gz
 ```
 
-### Upload Release Candidate Artefacts
-The release artefacts consist of three parts:
-- source tarball
-- signature file
-- checksum file
-The three artefacts need to be uploaded to: `https://dist.apache.org/repos/dist/dev/incubator/yunikorn/` 
+#### 创建Checksum
+这一步包含在源tar包生成后的发布内容中，如果使用发布工具可以跳过这一步。
+```shell script
+shasum -a 512 apache-yunikorn-0.8.0-src.tar.gz > apache-yunikorn-0.8.0-src.tar.gz.sha512
+```
+这将在文件中创建 checksum : `apache-yunikorn-0.8.0-src.tar.gz.sha512`  
+使用以下命令验证 checksum 是否正确：
+```shell script
+shasum -a 512 -c apache-yunikorn-0.8.0-src.tar.gz.sha512 
+```
 
-Create a release directory based on the version, i.e. `0.8.0`, add the three files to directory.
-Commit the changes.
+### 上传候选发布artifact
+发布的artifact由三个部分组成：
+- 源压缩包
+- 签名文件
+- checksum文件  
 
-If you have not done so already make sure to [add your signature](#add-the-signature-to-the-project-keys-file) to the KEYS file.
-Do not remove any keys from the file they are kept here to enable older releases to be verified.
+三个artifact需要上传到：`https://dist.apache.org/repos/dist/dev/yunikorn/`
 
-NOTE: you will need to install subversion to access this repo (use your apache ID). You can use any SVN client, e.g svnX, for convenience.
+根据版本创建发布目录，例如 `0.8.0`，将这三个文件添加到目录中，随后提交更改。
 
-### Start Voting Thread
-According to [podling release doc](https://incubator.apache.org/policy/incubation.html#releases) and [release approval doc](http://www.apache.org/legal/release-policy.html#release-approval). Steps are:
-- start a voting thread on `dev@yunikorn.apache.org`. (72 hours)
-- send a summary of that vote to the Incubator’s general list and request IPMC to vote. (72 hours)
-Both voting need to acquire at least three +1 votes are required and more +1 votes than -1 votes.
+如果您还没有这样做，请确保 [添加您的签名](#将签名添加到项目keys文件中) 到 KEYS 文件。
+不要从保存在此处的文件中删除任何密钥，这是为了方便验证旧的版本。
 
-### Publish the Release
-Once the voting is passed, move the release artefacts from the staging area to the release location `https://dist.apache.org/repos/dist/release/incubator/yunikorn/`. 
-Once moved to this space, the content will be automatically synced to `https://downloads.apache.org/incubator/yunikorn/` which must be used as the final location for release files.
-Read more for [location of files on main server](https://infra.apache.org/mirrors#location).
+注意：您需要安装 subversion 才能访问此 repo（使用您的 apache ID）。为方便起见，您可以使用任何 SVN 客户端，例如 svnX。
 
-This will temporarily provide us with two releases in the release area.
-This is needed to allow the start the mirror sync process and allow for the download page to be updated.
-Cleanup of the older release is handled after the website has been updated in the [cleanup](#Cleanup). 
+### 开始投票流程
+根据 Apache [发布批准文档](http://www.apache.org/legal/release-policy.html#release-approval)，步骤如下：
+- 在 `dev@yunikorn.apache.org` 上启动投票流程。（72 小时）
+需要至少三个 +1 票，而且 +1 票要多于 -1 票。
 
-#### Release Docker images
-The standard build process should be used to build the image.
-Run a `make image` in the `web`, and `k8shim` repositories to generate the three images required (web, scheduler and admission-controller):
+### 发布
+一旦投票通过，将发布的artifact内容从暂存区移动到发布位置 `https://dist.apache.org/repos/dist/release/yunikorn/`。  
+一旦移动到这个空间，内容将自动同步到 `https://downloads.apache.org/yunikorn/`，它必须作为发布文件的最终位置。  
+可以阅读 [主服务器上文件位置](https://infra.apache.org/mirrors#location) 来了解更多内容。
+
+这将会在发布区暂时为我们提供两个版本。
+这是允许启动镜像同步过程并允许更新下载页面的必要条件。
+在 [清理](#清理) 章节中会说明如何在更新网站后对旧的版本进行清理。
+
+#### 发布Docker镜像
+我们应该使用标准构建过程来构建映像。
+在 `web` 和 `k8shim` 存储库中运行 `make image` 以生成所需的三个镜像（web、调度器和准入控制器）：
 ```shell script
 VERSION=0.8.0; make image
 ```
 
-Make can also be used to build and push the image if you have access to the Apache docker hub YuniKorn container.
-Push the latest docker images to the apache docker hub using the release as tag.
-Make sure the docker image is built on the specific SHA.
+如果您有权访问 Apache docker hub YuniKorn 容器，Make 也可用于构建和推送映像。
+使用发布版本号作为标签将最新的 docker 镜像推送到 apache docker hub。
+需要确保 docker 映像是基于特定的 SHA 构建的。
 ```shell script
-VERSION=0.8.0; DOCKER_USERNAME=<name>; DOCKER_PASSWORD=<password>; make push 
+VERSION=0.8.0; DOCKER_USERNAME=<用户名>; DOCKER_PASSWORD=<密码>; make push 
 ```
-Publish an announcement email to the `dev@yunikorn.apache.org` email list. 
+最后向 `dev@yunikorn.apache.org` 邮件列表发布一个公告邮件。
 
-#### Release Helm Charts
-This step is part of the release tool if the release tool is used the packaging can be skipped.
+#### 发布 Helm Charts
+此步骤是发布工具的一部分，如果使用了发布工具则可以跳过这个打包步骤。
 
-If the release tool is **not** used the `Chart.yaml` and the `values.yaml` must be updated manually.
-The other option is to run the helm script against the generated source directory as the tool does: 
+如果发布工具 **未** 使用 `Chart.yaml` 那么 `values.yaml` 必须手动更新。
+另一种选择是像工具一样针对生成的源目录运行 helm 脚本：
 ```shell script
-helm package --sign --key ${your_key_name} --keyring ${path/to/keyring.secret} staging/<release-dir>/helm-charts/yunikorn --destination staging/ 
+helm package --sign --key ${您的key名称} --keyring ${path/to/keyring.secret} staging/<发布文件夹>/helm-charts/yunikorn --destination staging/ 
 ```
-Signing the helm package requires a legacy PGP keyring. The PGP v2 keyring must be converted to the legacy format.
-For more information please check [Helm documentation](https://helm.sh/docs/topics/provenance/).
-Helm charts should be signed on release.
-Contrary to the source code tar ball signing, signing the helm charts requires manual entry of the key password. 
+签署 helm 包需要一个旧的 PGP keyring。 PGP v2 keyring 必须转换为旧的格式。
+想了解更多的信息，请查看 [Helm 文档](https://helm.sh/docs/topics/provenance/)。
+Helm charts 应在发布时签名。
+与源代码 tar 包签名相反，对 helm 图表进行签名需要手动输入密钥密码。
 
-The helm package will generate two files:
-- helm package: example `yunikorn-0.8.0.tgz`
-- provenance or signature file: example `yunikorn-0.8.0.tgz.prov`
-Both files should be attached to the [release in GIT](#Create-the GIT-releases) for the release repository.
+helm 打包会生成两个文件：
+- helm 打包文件：例如 `yunikorn-0.8.0.tgz`
+- 出处或签名文件：例如 `yunikorn-0.8.0.tgz.prov`
+这两个文件都应附加到发布存储库的 [创建GIT发布](#创建GIT发布) 中。
 
-Last step is to update the [index.yaml](https://github.com/apache/incubator-yunikorn-release/blob/gh-pages/index.yaml) file in the `gh-pages` branch with the new release.
-The `digest` mentioned in the index.yaml file is the digest that gets printed by the tool (unsigned package) or stored in the provenance file.
-It can be generated manually using:
+最后一步是使用新的发布版本更新 `gh-pages` 分支中的 [index.yaml](https://github.com/apache/yunikorn-release/blob/gh-pages/index.yaml) 文件。
+index.yaml 文件中提到的 `摘要` 是由工具（未签名的包）打印或存储在出处文件中的摘要。
+我们可以使用以下方法手动生成：
 ```shell script
 shasum -a 256 yunikorn-0.8.0.tgz
 ```
 
-Note: do not use the `helm repo index` command to update the `index.yaml` file. The command does not handle the enhanced information stored in the `index.yaml` file nicely.
-Update the file manually.
+注意：不要使用 `helm repo index` 命令来更新 `index.yaml` 文件。该命令不能很好地处理存储在 `index.yaml` 文件中的增强信息。
+请手动更新文件。
 
-#### Update the website
-- Create a new documentation version on YuniKorn website based on the latest content in [docs](https://github.com/apache/incubator-yunikorn-site/tree/master/docs) directory. Refer to [this](https://github.com/apache/incubator-yunikorn-site/tree/master#release-a-new-version) guide to create the new documentation. 
-- Create the release announcement to be referenced from download page on the website. The release announcement is a markdown file based on the version: `0.8.0.md`. The file is stored as part of the [static pages](https://github.com/apache/incubator-yunikorn-site/tree/master/src/pages/release-announce) on the website. 
-- Update the [download page](https://github.com/apache/incubator-yunikorn-site/tree/master/src/pages/community/download.md) of the website.
+#### 更新网站
+- 根据 [文档](https://github.com/apache/yunikorn-site/tree/master/docs) 目录中的最新内容在 YuniKorn 网站上创建新的文档版本。 请参阅这里的 [指南](https://github.com/apache/yunikorn-site/tree/master#release-a-new-version) 以创建新的文档。
+- 创建要从网站下载页面引用的发布公告。发布公告是一个基于版本的markdown文件：`0.8.0.md`。该文件存储为网站上[静态页面](https://github.com/apache/yunikorn-site/tree/master/src/pages/release-announce)中的一部分。
+- 更新网站的 [下载页面](https://github.com/apache/yunikorn-site/tree/master/src/pages/community/download.md)。
 
-The release announcement are linked to the release details on the download page.
+发布公告链接到下载页面上的发布详细信息内。
 
-Links for the releases have to follow these rules:
-* The first download link on the page **must** use the mirror resolution link for the source tar ball only.
-* The signature and checksum links **must** point to the release location.
-* The non-current releases **must** use the archive links: `https://archive.apache.org/dist/incubator/yunikorn/` for the tar ball, the signature and the checksum.
+发布的链接必须遵循以下规则：
+* 页面上的第一个下载链接 **必须** 只能使用源 tar 包的镜像解析链接。
+* 签名和 checksum 链接 **必须** 指向发布地址。
+* 非当前版本 **必须** 使用存档链接：`https://archive.apache.org/dist/yunikorn/` 用于 tar 包、签名和checksum。
 
-A limited set of three (3) or four (4) releases should be maintained in the table for direct access.
-Older releases not mentioned in the table can still be accessed via the archive link on the bottom of the page and do not need to be referenced.
+表中应保留有限的三或四个版本以供直接访问。
+表中未提及的旧版本仍可通过页面底部的存档链接访问，无需参考。
 
-#### Cleanup
-NOTE: this step should be performed after the website updates have been made as the download links change.
+#### 清理
+注意：此步骤应在网站更新后执行，因为下载链接会进行更改。
 
-There should only be one release, the latest, in the release area.
-Any release that has been in the release area will be automatically copied to the archive. 
-Older releases should be downloaded from the archive directly, not from the release area.
+发布区域中应该只有一个发布信息，即最新的发布。
+已在发布区域中的任何发布信息都将自动复制到存档中。
+旧的发布信息应直接从存档下载，而不是从发布区域下载。
 
-The releases need to clean up in two locations:
-* Remove the newly released version from the _dev_ area by removing the old release candidate directory.
-  For the location see [release candidate location](#Upload-Release-Candidate-Artefacts)
-* Remove the non-current release from the _release_ area by removing the old release directory.
-  For the location see [release location](#Publish-the-Release)
+发布信息需要在两个位置进行清理：
+* 通过删除旧的候选发布目录，从 _dev_ 区域中删除新发布的版本。
+  请参阅 [发布候选位置](#上传候选发布artifact) 来查看相关位置
+* 通过删除旧发布目录从 _发布_ 区域中删除非当前的发布信息。
+  请参见 [发布位置](#发布) 来查看相关位置
 
-#### Create the GIT releases
-In the GIT repositories finish the release process by creating a release based on the git tag that was added.
-Repeat these steps for all five repositories (core, k8shim, web, scheduler-interface and release):
-- Go to the `tags` page
-- click the `...` at the right-hand side of the page that you want to release, select `Create Release` from the drop down
-- update the name and note
-- add the packaged helm chart files (incubator-yunikorn-release repository only)
-- click `Publish Release` to finish the steps
+#### 创建GIT发布
+在 GIT 存储库中，通过添加的 git 标签来创建发布，并最终完成发布流程。
+对所有五个存储库（core、k8shim、web、scheduler-interface 和 release）都重复这些步骤：
+- 转到 `tags` 页面
+- 单击要发布的页面右侧的 `...` ，从下拉列表中选择 `Create Release`
+- 更新名称和说明
+- 添加打包好的 helm chart 文件（仅限 yunikorn-release 存储库）
+- 单击 `Publish Release` 以完成步骤
 
-### Verify the release
-After the whole procedure verify the documentation on the website and that the released artifacts can be downloaded.
-Mirror links might take up to 24 hours to be updated.
+### 验证发布
+完成整个过程后，验证网站上的文档以及可下载的发布artifact。
+镜像链接最长可能需要 24 小时才能更新。
 
-## Signing your first release
-If you haven't signed any releases before, read the documentation to [generate signing key](https://infra.apache.org/openpgp.html#generate-key)
-Follow the steps below to add the key you can use to sign. 
+## 签名您的第一个发布
+如果您之前没有对任何版本进行签名，请阅读文档以 [生成签名密钥](https://infra.apache.org/openpgp.html#generate-key)
+请按照以下步骤添加可用于签名的密钥。
 
-### Generate a Key
-Generate a new PGP key (skip this step if you already have an Apache linked key):
+### 生成密钥
+生成新的 PGP 密钥（如果您已有 Apache 链接密钥，请跳过此步骤）：
 ```shell script
 gpg --gen-key
 ```
-Fill out the requested information using your full name and Apache email address.
+使用您的全名和 Apache 邮件地址填写请求的信息。
 
-Upload the exported key to a public key server like `https://pgp.mit.edu/`.
+将导出的密钥上传到像 `https://pgp.mit.edu/` 这样的公钥服务器。
 ```shell script
-gpg --export --armor <email-address>
+gpg --export --armor <邮件地址>
 ```
 
-Upload the fingerprint to apache server: `https://id.apache.org/`.
+将 fingerprint 上传到 apache 服务器：`https://id.apache.org/`。
 ```shell script
-gpg --fingerprint <email-address>
+gpg --fingerprint <邮件地址>
 ```
 
-### Add the signature to the project KEYS file
-Only needed if this is the first release signed with the specific key.
-More detail can be found in the document: [Signing a Release](https://infra.apache.org/release-signing.html#keys-policy)
+### 将签名添加到项目KEYS文件中
+只有当这是使用特定密钥签名的第一个发布版本时才需要。
+可以在此文档中找到更多详细信息：[签署版本](https://infra.apache.org/release-signing.html#keys-policy)
 ```shell script
-(gpg --list-sigs <email-address> && gpg --armor --export <email-address>) >> MY_KEY
+(gpg --list-sigs <邮件地址> && gpg --armor --export <邮件地址>) >> MY_KEY
 ```
-Add the content of the generated file to the existing KEYS list at `https://dist.apache.org/repos/dist/release/incubator/yunikorn/KEYS`
-Never remove a key from this list!
+将生成文件的内容添加到 `https://dist.apache.org/repos/dist/release/yunikorn/KEYS` 现有 KEYS 列表中。  
+切勿从此列表中删除密钥！
 
-NOTE: you will need to install subversion to access this repo (use your apache ID). You can use any SVN client, e.g. svnX, for convenience.
+注意：您需要安装 subversion 才能访问此 repo（使用您的 apache ID）。为方便起见，您可以使用任何 SVN 客户端，例如 svnX。
