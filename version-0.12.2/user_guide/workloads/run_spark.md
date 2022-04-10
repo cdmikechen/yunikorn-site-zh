@@ -123,7 +123,7 @@ ${SPARK_HOME}/bin/spark-submit --master k8s://http://localhost:8001 --deploy-mod
 ![spark-pods](./../../assets/spark-pods.png)
 
 您还可以从 YuniKorn UI 查看作业信息。如果您不知道如何访问 YuniKorn UI，请阅读文档
-[链接](../../get_started/get_started.md#access-the-web-ui).
+[链接](../../get_started/get_started.md#访问-web-ui).
 
 ![spark-jobs-on-ui](./../../assets/spark-jobs-on-ui.png)
 
@@ -135,7 +135,7 @@ ${SPARK_HOME}/bin/spark-submit --master k8s://http://localhost:8001 --deploy-mod
 
 默认配置已启用放置规则，该规则会自动将 `spark-test` 命名空间映射到YuniKorn的队列 `root.spark test`。
 提交到此命名空间的所有Spark作业将首先自动提交到该队列。
-要了解有关放置规则如何工作的更多信息，请参阅文档[放置规则](user_guide/placement_rules.md)。
+要了解有关放置规则如何工作的更多信息，请参阅文档[应用放置规则](user_guide/placement_rules.md)。
 到目前为止，名称空间定义pod的安全上下文，队列考虑到作业顺序、队列资源公平性等因素会确定如何调度作业和pod。
 注意，这是最简单的设置，不强制执行队列容量。该队列被视为具有无限容量。
 

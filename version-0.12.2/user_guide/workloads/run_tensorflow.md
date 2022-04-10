@@ -37,7 +37,7 @@ kubectl apply -k "github.com/kubeflow/training-operator/manifests/overlays/stand
 
 ## 准备 docker 镜像
 在开始于 Kubernetes 上运行 TensorFlow 作业之前，您需要构建 docker 镜像。
-1. 从 [deployment/examples/tfjob](https://github.com/apache/incubator-yunikorn-k8shim/tree/master/deployments/examples/tfjob) 上下载文件
+1. 从 [deployment/examples/tfjob](https://github.com/apache/yunikorn-k8shim/tree/master/deployments/examples/tfjob) 上下载文件
 2. 使用以下命令构建这个 docker 镜像
 
 ```
@@ -45,7 +45,7 @@ docker build -f Dockerfile -t kubeflow/tf-dist-mnist-test:1.0 .
 ```
 
 ## 运行一个 TensorFlow 作业
-以下是一个使用 MNIST [样例](https://github.com/apache/incubator-yunikorn-k8shim/blob/master/deployments/examples/tfjob/tf-job-mnist.yaml) 的 TFJob yaml. 
+以下是一个使用 MNIST [样例](https://github.com/apache/yunikorn-k8shim/blob/master/deployments/examples/tfjob/tf-job-mnist.yaml) 的 TFJob yaml. 
 
 ```yaml
 apiVersion: kubeflow.org/v1
@@ -88,6 +88,6 @@ kubectl create -f deployments/examples/tfjob/tf-job-mnist.yaml
 ```
 
 您可以从 YuniKorn UI 中查看作业信息。 如果您不知道如何访问 YuniKorn UI，
-请阅读此 [文档](../../get_started/get_started.md#访问-Web-UI)。
+请阅读此 [文档](../../get_started/get_started.md#访问-web-ui)。
 
 ![tf-job-on-ui](../../assets/tf-job-on-ui.png)
