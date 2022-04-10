@@ -79,7 +79,7 @@ under the License.
 
 返回与集群资源利用率相关的统计数据
 
-**Status** : Deprecated since v0.12.2, replaced by [Partitions](scheduler.md#partitions)
+**Status** : 自 v0.12.2 起已弃用，已替换为 [分区](scheduler.md#分区)
 
 **URL** : `/ws/v1/clusters/utilization`
 

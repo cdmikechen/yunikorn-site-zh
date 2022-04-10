@@ -24,7 +24,7 @@ under the License.
 
 ## 分区
 
-Displays general information about the partition like name, state, capacity, used capacity, utilization, and node sorting policy.
+显示有关分区的常规信息，例如名称、状态、容量、已用容量、利用率和节点排序策略。
 
 **URL** : `/ws/v1/partitions`
 
@@ -430,8 +430,8 @@ Displays general information about the partition like name, state, capacity, use
 
 ### 分区节点
 
-获取与给定分区关联的所有节点，并显示有关由YuniKorn管理的节点的常规信息。
-Node details include host and rack name, capacity, resources, utilization, and allocations.
+获取与给定分区关联的所有节点，并显示有关由 YuniKorn 管理的节点的常规信息。
+节点详细信息，包括主机和机架名称、容量、资源、利用率和分配情况。
 
 **URL** : `/ws/v1/partition/{partitionName}/nodes`
 
@@ -627,7 +627,7 @@ Node details include host and rack name, capacity, resources, utilization, and a
 
 ## 节点利用率
 
-**Status** : Deprecated since v0.12.2, replaced by [Partition Nodes](#partition-nodes)
+**Status** : 自 v0.12.2 起已弃用，已替换为 [分区节点](#分区节点)
 
 **URL** : `/ws/v1/nodes/utilization`
 
@@ -883,7 +883,7 @@ partitions:
 
 ### 成功返回
 
-Regardless whether the configuration is allowed or not if the server was able to process the request, it will yield a 200 HTTP status code.
+如果服务器能够处理请求，无论是否允许配置，它都会产生HTTP状态代码200。
 
 **返回代码** : `200 OK`
 
